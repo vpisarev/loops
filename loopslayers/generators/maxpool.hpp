@@ -7,7 +7,7 @@ See https://github.com/4ekmah/loops/LICENSE
 #ifndef __LOOPS_MAXPOOL_HPP__
 #define __LOOPS_MAXPOOL_HPP__
 
-#if __LOOPS_ARCH == __LOOPS_AARCH64
+#if __LOOPS_ARCH == __LOOPS_AARCH64 || __LOOPS_ARCH == __LOOPS_INTEL64
 #include "loops/loops.hpp"
 #include "loopslayers/loopslayers.h"
 #include <algorithm>
@@ -15,8 +15,15 @@ See https://github.com/4ekmah/loops/LICENSE
 #include <vector>
 #include <iostream>
 #include <iomanip>
-#include "arm_neon.h"
 #include "test/tests.hpp"
+#if __LOOPS_OS == __LOOPS_WINDOWS
+#undef min
+#undef max
+#pragma warning(push)
+#pragma warning(disable:4458)
+#pragma warning(disable:4456)
+#endif 
+
 //TODO(ch): There must not be Exprs in user code.
 namespace loops
 {
@@ -894,7 +901,6 @@ VReg<_Tp> MaxpoolGenerator<_Tp>::activationFunction(VReg<_Tp>& res)
         case(ACT_LRELU): return static_cast<VReg<_Tp>&&>(alpha < 1 ? max(res,res * valpha) : min(res,res * valpha) ); break;
         default: throw std::runtime_error("Unknown activation");
     };
-    return VReg<_Tp>();
 }
 
 template<typename _Tp>
@@ -916,5 +922,9 @@ IExpr MaxpoolGenerator<_Tp>::effective_const_mul(const IReg& m1, int m2)
         return m1*m2;
 }
 }
-#endif //__LOOPS_ARCH ==  __LOOPS_AARCH64
+#if __LOOPS_OS == __LOOPS_WINDOWS
+#pragma warning(pop)
+#endif 
+
+#endif //__LOOPS_ARCH == __LOOPS_AARCH64 || __LOOPS_ARCH == __LOOPS_INTEL64
 #endif //__LOOPS_MAXPOOL_HPP__

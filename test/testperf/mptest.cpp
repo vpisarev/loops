@@ -4,11 +4,10 @@ Distributed under Apache 2 license.
 See https://github.com/4ekmah/loops/LICENSE
 */
 #include "mptest.hpp"
-#if __LOOPS_ARCH == __LOOPS_AARCH64
+#if __LOOPS_ARCH == __LOOPS_AARCH64 || __LOOPS_ARCH ==  __LOOPS_INTEL64
 
 #include "loops/loops.hpp"
 #include "mptest.hpp"
-#include "dwctest.hpp"
 #include "loopslayers/loopslayers.h"
 #include <algorithm>
 #include <cstddef>
@@ -16,8 +15,14 @@ See https://github.com/4ekmah/loops/LICENSE
 #include <vector>
 #include <iostream>
 #include <thread>
-#include "arm_neon.h"
 #include "tests.hpp"
+#if __LOOPS_OS == __LOOPS_WINDOWS
+#undef min
+#undef max
+//MSVC is strange, I cannot make this compile without warning: "const _Tp empty_value = static_cast<const _Tp>(kh * kw * 2000 + 1);"
+#pragma warning(push)
+#pragma warning(disable:4244)
+#endif 
 
 namespace loops
 {
@@ -40,6 +45,7 @@ private:
     dwc_algs_limits ref_calc_algs_limits(int NC, int H, int W, int kh, int kw, int H0, int W0, int padding_top, int padding_left, int padding_bottom, int padding_right, int stride_y, int stride_x, int dilation_y, int dilation_x);
     template<typename _Tp>
     bool compare(_Tp* tocheck, _Tp* ref, int C, int H, int W, _Tp empty_value);
+    bool isFixtureSupported(const std::vector<int>& fixture);
     template<typename _Tp>
     bool handleFixture(const std::vector<int>& fxt);
     template<typename _Tp>
@@ -345,6 +351,20 @@ bool MaxpoolTestImpl::compare(_Tp* tocheck, _Tp* ref, int C, int H, int W, _Tp e
     return true;
 }
 
+bool MaxpoolTestImpl::isFixtureSupported(const std::vector<int>& fxt)
+{
+    (void)fxt;
+#if __LOOPS_ARCH == __LOOPS_INTEL64
+    const int typ = fxt[0];
+    const int stride_x = fxt[11];
+    return (typ == TYPE_FP32) && stride_x == 1;
+#elif __LOOPS_ARCH == __LOOPS_AARCH64
+    return true;
+#else
+#error Unsupported CPU
+#endif
+}
+
 template<typename _Tp>
 bool MaxpoolTestImpl::handleFixture(const std::vector<int>& fxt)
 {
@@ -361,13 +381,13 @@ bool MaxpoolTestImpl::handleFixture(const std::vector<int>& fxt)
     const int stride_y = fxt[10];
     const int stride_x = fxt[11];
     const int activation = fxt[12];
-    const float alpha = fxt[13] == BIG_ALPHA ? 1.25 : 0.25;
+    const float alpha = fxt[13] == BIG_ALPHA ? 1.25f : 0.25f;
     bool perf = (fxt[14] == PERF);
     const int H0 = (H + padding_top + padding_bottom - kh) / stride_y + 1;
     const int W0 = (W + padding_left + padding_right - kw) / stride_x + 1;
 
     (*out) << "Maxpooling "<<(fxt[0]==TYPE_FP16?"FP16 ":"FP32 ")<<kh<<"x"<<kw<<", C = "<< NC << ", H = "<< H << ", W = "<< W << ", pt = "<< padding_top << ", pl = "<< padding_left << ", pb = "<< padding_bottom << ", pr = "<< padding_right << ", stride_y = " << stride_y << ", stride_x = " << stride_x  << std::endl;
-    const _Tp empty_value(kh * kw * 2000 + 1);
+    const _Tp empty_value = static_cast<const _Tp>(kh * kw * 2000 + 1);
     dwc_algs_limits algs_limits;
     const dwc_algs_limits ref_limits = ref_calc_algs_limits<_Tp>(NC, H, W, kh, kw, H0, W0, padding_top, padding_left, padding_bottom, padding_right, stride_y, stride_x, 1, 1);
     MPTestTraits<_Tp>::calc_dwc_algs_limits(CTX, &algs_limits, NC, W, H, kw, kh, H0, W0, padding_top, padding_left, padding_bottom, padding_right, stride_y, stride_x);
@@ -465,13 +485,13 @@ bool MaxpoolTestImpl::handleFixtureMultithread(const std::vector<int>& fxt)
     const int stride_y = fxt[11];
     const int stride_x = fxt[12];
     const int activation = fxt[13];
-    const float alpha = fxt[14] == BIG_ALPHA ? 1.25 : 0.25;
+    const float alpha = fxt[14] == BIG_ALPHA ? 1.25f : 0.25f;
     int threads = fxt[15];
     
     const int H0 = (H + padding_top + padding_bottom - kh) / stride_y + 1;
     const int W0 = (W + padding_left + padding_right - kw) / stride_x + 1;
 
-    const _Tp empty_value(kh * kw * 2000 + 1);
+    const _Tp empty_value = static_cast<const _Tp>(kh * kw * 2000 + 1);
     int NCtask_ = NC / threads;
     int tailTaskNum = NC % threads;
 
@@ -558,9 +578,6 @@ void MaxpoolTestImpl::run()
     // srand(8);
     std::cout << "=================================================  SINGLETHREAD TESTS  =============================================================="<<std::endl;
     std::vector<std::vector<int> > fixtures = {
-        {TYPE_FP32, 3, 3, 5, 11, 11, 1, 0, 0, 0, 1, 2, ACT_NONE, SMALL_ALPHA, REGRESS},
-
-
         {TYPE_FP16, 3, 3, 3, 10, 10, 0, 0, 0, 0, 1, 1, ACT_NONE, SMALL_ALPHA, REGRESS},
         {TYPE_FP16, 3, 3, 3, 10, 10, 1, 0, 0, 0, 1, 1, ACT_NONE, SMALL_ALPHA, REGRESS},
         {TYPE_FP16, 3, 3, 3, 10, 10, 0, 1, 0, 0, 1, 1, ACT_NONE, SMALL_ALPHA, REGRESS},
@@ -752,6 +769,9 @@ void MaxpoolTestImpl::run()
 //      {kh,kw, NC, H, W, padding_top, padding_left, padding_bottom, padding_right, stride_y, stride_x}
     };
     for(auto fxt: fixtures)
+    {
+        if(!isFixtureSupported(fxt)) 
+            continue;
         if(fxt[0] == TYPE_FP32)
         {
             if(!handleFixture<float>(fxt))
@@ -762,6 +782,7 @@ void MaxpoolTestImpl::run()
             if(!handleFixture<f16_t>(fxt))
                 return;
         }
+    }
     std::cout << "=================================================  MULTITHREAD TESTS  =============================================================="<<std::endl;
     std::vector<std::vector<int> > fixtures_mt = {
         {TYPE_FP16, 5, 5, 1, 1632, 7, 7, 2, 2, 2, 2, 1, 1, ACT_RELU6, SMALL_ALPHA, 8},
@@ -778,6 +799,8 @@ void MaxpoolTestImpl::run()
     };
     for(auto fxt: fixtures_mt)
     {
+        if(!isFixtureSupported(fxt)) 
+            continue;
         if(fxt[0] == TYPE_FP32)
         {
             if(!handleFixtureMultithread<float>(fxt))
@@ -788,7 +811,40 @@ void MaxpoolTestImpl::run()
             if(!handleFixtureMultithread<f16_t>(fxt))
                 return;
         }
-    };
+    }
+}
+
+bool compare_algs_limits(const dwc_algs_limits& tocheck, const dwc_algs_limits& reference, std::ostream* out)
+{
+    bool res = true;
+    if(tocheck.Cms != reference.Cms) {(*out)<<"    Cms:ref = " << reference.Cms << " | checked =  " << tocheck.Cms<<std::endl; res = false;}
+    if(tocheck.Cme != reference.Cme) {(*out)<<"    Cme:ref = " << reference.Cme << " | checked =  " << tocheck.Cme<<std::endl; res = false;}
+    if(tocheck.Cis != reference.Cis) {(*out)<<"    Cis:ref = " << reference.Cis << " | checked =  " << tocheck.Cis<<std::endl; res = false;}
+    if(tocheck.Cie != reference.Cie) {(*out)<<"    Cie:ref = " << reference.Cie << " | checked =  " << tocheck.Cie<<std::endl; res = false;}
+    if(tocheck.Yms != reference.Yms) {(*out)<<"    Yms:ref = " << reference.Yms << " | checked =  " << tocheck.Yms<<std::endl; res = false;}
+    if(tocheck.Yme != reference.Yme) {(*out)<<"    Yme:ref = " << reference.Yme << " | checked =  " << tocheck.Yme<<std::endl; res = false;}
+    if(tocheck.Yis != reference.Yis) {(*out)<<"    Yis:ref = " << reference.Yis << " | checked =  " << tocheck.Yis<<std::endl; res = false;}
+    if(tocheck.Yie != reference.Yie) {(*out)<<"    Yie:ref = " << reference.Yie << " | checked =  " << tocheck.Yie<<std::endl; res = false;}
+    if(tocheck.Xis != reference.Xis) {(*out)<<"    Xis:ref = " << reference.Xis << " | checked =  " << tocheck.Xis<<std::endl; res = false;}
+    if(tocheck.Xie != reference.Xie) {(*out)<<"    Xie:ref = " << reference.Xie << " | checked =  " << tocheck.Xie<<std::endl; res = false;}
+    return res;
+}
+
+void print_algs_limits(const dwc_algs_limits& toprint, std::ostream* out)
+{
+    (*out)<<"    Cms: = " << toprint.Cms<<std::endl;
+    (*out)<<"    Cme: = " << toprint.Cme<<std::endl;
+    (*out)<<"    Cis: = " << toprint.Cis<<std::endl;
+    (*out)<<"    Cie: = " << toprint.Cie<<std::endl;
+    (*out)<<"    Yms: = " << toprint.Yms<<std::endl;
+    (*out)<<"    Yme: = " << toprint.Yme<<std::endl;
+    (*out)<<"    Yis: = " << toprint.Yis<<std::endl;
+    (*out)<<"    Yie: = " << toprint.Yie<<std::endl;
+    (*out)<<"    Xis: = " << toprint.Xis<<std::endl;
+    (*out)<<"    Xie: = " << toprint.Xie<<std::endl;
 }
 }
-#endif //__LOOPS_ARCH ==  __LOOPS_AARCH64
+#if __LOOPS_OS == __LOOPS_WINDOWS
+#pragma warning(pop)
+#endif 
+#endif //__LOOPS_ARCH ==  __LOOPS_AARCH64 || __LOOPS_ARCH ==  __LOOPS_INTEL64

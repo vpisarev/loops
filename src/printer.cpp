@@ -88,13 +88,19 @@ LOOPS_HASHMAP_STATIC(int, loops_cstring) opstrings_[] =
     LOOPS_HASHMAP_ELEM(loops::VOP_OR              , "or"                    ) ,
     LOOPS_HASHMAP_ELEM(loops::VOP_XOR             , "xor"                   ) ,
     LOOPS_HASHMAP_ELEM(loops::VOP_NOT             , "not"                   ) ,
-    LOOPS_HASHMAP_ELEM(loops::VOP_SELECT          , "select"                ) ,
     LOOPS_HASHMAP_ELEM(loops::OP_X86_ADC          , "x86_adc"               ) ,
     LOOPS_HASHMAP_ELEM(loops::OP_X86_CQO          , "x86_cqo"               ) ,
-    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VEXTRACTI128, "x86_vextracti128"      ) ,
-    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VEXTRACTF128, "x86_vextractf128"      ) ,
-    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VINSERTI128 , "x86_vinserti128"       ) ,
-    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VINSERTF128 , "x86_vinsertf128"       ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VEXTRACT128 , "x86_vextract128"       ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VINSERT128  , "x86_vinsert128"        ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VPERM2I128  , "x86_vperm2i128"        ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VPALIGNR    , "x86_vpalignr"          ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VPSHUFD     , "x86_vpshufd"           ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VPSADBW     , "x86_vpsadbw"           ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VPHADDD     , "x86_vphaddd"           ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VHADDPS     , "x86_vhaddps"           ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VADDSS      , "x86_vaddss"            ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VHADDPD     , "x86_vhaddpd"           ) ,
+    LOOPS_HASHMAP_ELEM(loops::VOP_X86_VADDSD      , "x86_vaddsd"            ) ,
     LOOPS_HASHMAP_ELEM(loops::OP_ARM_CINC         , "arm_cinc"              ) ,
     LOOPS_HASHMAP_ELEM(loops::OP_ARM_CNEG         , "arm_cneg"              ) ,
     LOOPS_HASHMAP_ELEM(loops::OP_ARM_MOVK         , "arm_movk"              ) ,
@@ -166,6 +172,7 @@ LOOPS_HASHMAP_STATIC(int, suffixed_opname) suffixed_opnames_[] =
     LOOPS_HASHMAP_ELEM(loops::VOP_LE               , {1, {{"le."               , 0, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_NE               , {1, {{"ne."               , 0, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_EQ               , {1, {{"eq."               , 0, SUFFIX_ELEMTYPE, 0}}}),
+    LOOPS_HASHMAP_ELEM(loops::VOP_SELECT           , {1, {{"select."           , 0, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_TRUNC            , {2, {{"trunc."            , 1, SUFFIX_ELEMTYPE, 0}, {"_"     , 0, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_FLOOR            , {2, {{"floor."            , 1, SUFFIX_ELEMTYPE, 0}, {"_"     , 0, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_CAST             , {2, {{"cast."             , 1, SUFFIX_ELEMTYPE, 0}, {"_"     , 0, SUFFIX_ELEMTYPE, 0}}}),
@@ -177,11 +184,11 @@ LOOPS_HASHMAP_STATIC(int, suffixed_opname) suffixed_opnames_[] =
     LOOPS_HASHMAP_ELEM(loops::VOP_REDUCE_MAX       , {1, {{"reduce.max."       , 0, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_REDUCE_MIN       , {1, {{"reduce.min."       , 0, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_REDUCE_SUM       , {1, {{"reduce.sum."       , 0, SUFFIX_ELEMTYPE, 0}}}),
-    LOOPS_HASHMAP_ELEM(loops::VOP_REDUCE_WSUM      , {2, {{"reduce.wmax"       , 0, SUFFIX_ELEMTYPE, 0}, {".from.", 1, SUFFIX_ELEMTYPE, 0}}}),
+    LOOPS_HASHMAP_ELEM(loops::VOP_REDUCE_WSUM      , {2, {{"reduce.wsum."      , 0, SUFFIX_ELEMTYPE, 0}, {".from.", 1, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_ARM_LD1          , {1, {{"vld_lane."         , 0, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_ARM_ST1          , {1, {{"vst_lane."         , 1, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_ARM_LD2          , {1, {{"vld_deinterleave2.", 0, SUFFIX_ELEMTYPE, 0}}}),
-    LOOPS_HASHMAP_ELEM(loops::VOP_ARM_EXT          , {1, {{"ext."              , 0, SUFFIX_ELEMTYPE, 0}}}),
+    LOOPS_HASHMAP_ELEM(loops::VOP_EXT              , {1, {{"ext."              , 0, SUFFIX_ELEMTYPE, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_ARM_SHRINK_LOW   , {3, {{"cast."             , 0, SUFFIX_ELEMTYPE, 0}, {".from.", 1, SUFFIX_ELEMTYPE, 0}, {".low" , 0, SUFFIX_VOID, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_ARM_SHRINK_HIGH  , {3, {{"cast."             , 0, SUFFIX_ELEMTYPE, 0}, {".from.", 1, SUFFIX_ELEMTYPE, 0}, {".high", 0, SUFFIX_VOID, 0}}}),
     LOOPS_HASHMAP_ELEM(loops::VOP_GETLANE          , {1, {{"getlane."          , 1, SUFFIX_ELEMTYPE, 0}}}),
@@ -584,13 +591,11 @@ int col_opname_table_printer(program_printer* printer, column_printer* colprinte
     loops_cstring found_name = NULL;
     loops::Syntop* op = func->program->data;
     op += row;
-    err = loops_hashmap_get((LOOPS_HASHMAP(int, loops_cstring))colprinter->auxdata, op->opcode, &found_name);
-    if(err != LOOPS_ERR_ELEMENT_NOT_FOUND && err != LOOPS_ERR_SUCCESS )
+    err = ((table_opname_getter)colprinter->auxdata)(op->opcode, &found_name);
+    if(err != LOOPS_ERR_SUCCESS )
         LOOPS_THROW(err);
     else if(err == LOOPS_ERR_SUCCESS)
         LOOPS_CALL_THROW(loops_printf(printer, "%s", found_name));
-    else
-        LOOPS_THROW(LOOPS_ERR_UNPRINTABLE_OPERATION);
     LOOPS_CALL_THROW(close_printer_cell(printer));
     return LOOPS_ERR_SUCCESS;
 }

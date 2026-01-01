@@ -21,31 +21,61 @@ template<typename _Tp> struct CmpElemTraits {};
 
 template<> struct CmpElemTraits<int8_t> {
     typedef uint8_t masktype;
+    typedef int8_t signedtype;
     static inline std::string typestring() { return "i8"; } 
 };
 
 template<> struct CmpElemTraits<int16_t> {
     typedef uint16_t masktype;
+    typedef int16_t signedtype;
     static inline std::string typestring() { return "i16"; } 
 };
 
 template<> struct CmpElemTraits<int32_t> {
     typedef uint32_t masktype;
+    typedef int32_t signedtype;
     static inline std::string typestring() { return "i32"; } 
 };
 
 template<> struct CmpElemTraits<int64_t> {
     typedef uint64_t masktype;
+    typedef int64_t signedtype;
     static inline std::string typestring() { return "i64"; } 
+};
+
+template<> struct CmpElemTraits<uint8_t> {
+    typedef uint8_t masktype;
+    typedef int8_t signedtype;
+    static inline std::string typestring() { return "u8"; } 
+};
+
+template<> struct CmpElemTraits<uint16_t> {
+    typedef uint16_t masktype;
+    typedef int16_t signedtype;
+    static inline std::string typestring() { return "u16"; } 
+};
+
+template<> struct CmpElemTraits<uint32_t> {
+    typedef uint32_t masktype;
+    typedef int32_t signedtype;
+    static inline std::string typestring() { return "u32"; } 
+};
+
+template<> struct CmpElemTraits<uint64_t> {
+    typedef uint64_t masktype;
+    typedef int64_t signedtype;
+    static inline std::string typestring() { return "u64"; } 
 };
 
 template<> struct CmpElemTraits<float> {
     typedef uint32_t masktype;
+    typedef float signedtype;
     static inline std::string typestring() { return "fp32"; } 
 };
 
 template<> struct CmpElemTraits<double> {
     typedef uint64_t masktype;
+    typedef double signedtype;
     static inline std::string typestring() { return "fp64"; } 
 };
 
@@ -90,12 +120,12 @@ Func make_vector_cmp_func(Context ctx, int cmptype)
 template<typename _Tp>
 void check_vector_cmp_func(int cmptype, Func tested_)
 {
-    std::vector<_Tp> a = {0, 4, 9, 0, -16, -24, 0, 22, 39, 0, -28, -55, -33, 0, 69, 48, 0, -82, -68, 0, 91, 87, 0, -98, -109, 0, 99, 127, 0, -97, -120, -63};
-    typedef void (*vector_cmp_f)(_Tp*, _Tp*, typename CmpElemTraits<_Tp>::masktype*, int64_t);
+    std::vector<typename CmpElemTraits<_Tp>::signedtype> a = {0, 4, 9, 0, -16, -24, 0, 22, 39, 0, -28, -55, -33, 0, 69, 48, 0, -82, -68, 0, 91, 87, 0, -98, -109, 0, 99, 127, 0, -97, -120, -63};
+    typedef void (*vector_cmp_f)(typename CmpElemTraits<_Tp>::signedtype*, typename CmpElemTraits<_Tp>::signedtype*, typename CmpElemTraits<_Tp>::masktype*, int64_t);
     vector_cmp_f tested = reinterpret_cast<vector_cmp_f>(tested_.ptr());
     for(int shift = 0; shift < (int)a.size() - 1; shift++)
     {
-        std::vector<_Tp> b(a.size(), 0);
+        std::vector<typename CmpElemTraits<_Tp>::signedtype> b(a.size(), 0);
         std::vector<typename CmpElemTraits<_Tp>::masktype> resvec(a.size(), 0);
         memcpy(b.data(), a.data() + shift, (a.size() - shift)*sizeof(_Tp));
         memcpy(b.data() + (a.size() - shift), a.data(), shift*sizeof(_Tp));
@@ -105,12 +135,12 @@ void check_vector_cmp_func(int cmptype, Func tested_)
             typename CmpElemTraits<_Tp>::masktype res = 0;
             switch(cmptype)
             {
-                case VCMP_EQ: res = (a[elnum] == b[elnum]); break;
-                case VCMP_NE: res = (a[elnum]!= b[elnum]); break;
-                case VCMP_LT: res = (a[elnum]< b[elnum]); break;
-                case VCMP_LE: res = (a[elnum]<= b[elnum]); break;
-                case VCMP_GT: res = (a[elnum]> b[elnum]); break;
-                case VCMP_GE: res = (a[elnum]>= b[elnum]); break;
+                case VCMP_EQ: res = ((_Tp)a[elnum] == (_Tp)b[elnum]); break;
+                case VCMP_NE: res = ((_Tp)a[elnum]!= (_Tp)b[elnum]); break;
+                case VCMP_LT: res = ((_Tp)a[elnum]< (_Tp)b[elnum]); break;
+                case VCMP_LE: res = ((_Tp)a[elnum]<= (_Tp)b[elnum]); break;
+                case VCMP_GT: res = ((_Tp)a[elnum]> (_Tp)b[elnum]); break;
+                case VCMP_GE: res = ((_Tp)a[elnum]>= (_Tp)b[elnum]); break;
             };
             res = 0 - res;
             ASSERT_EQ(res, resvec[elnum]);
@@ -132,6 +162,14 @@ TEST(intel64, all_vector_comparings)
         check_vector_cmp_func<int32_t>(cmpoperations[cnum], t);
         t = make_vector_cmp_func<int64_t>(ctx, cmpoperations[cnum]);
         check_vector_cmp_func<int64_t>(cmpoperations[cnum], t);
+        t = make_vector_cmp_func<uint8_t>(ctx, cmpoperations[cnum]);
+        check_vector_cmp_func<uint8_t>(cmpoperations[cnum], t);
+        t = make_vector_cmp_func<uint16_t>(ctx, cmpoperations[cnum]);
+        check_vector_cmp_func<uint16_t>(cmpoperations[cnum], t);
+        t = make_vector_cmp_func<uint32_t>(ctx, cmpoperations[cnum]);
+        check_vector_cmp_func<uint32_t>(cmpoperations[cnum], t);
+        t = make_vector_cmp_func<uint64_t>(ctx, cmpoperations[cnum]);
+        check_vector_cmp_func<uint64_t>(cmpoperations[cnum], t);
         t = make_vector_cmp_func<float>(ctx, cmpoperations[cnum]);
         check_vector_cmp_func<float>(cmpoperations[cnum], t);
         t = make_vector_cmp_func<double>(ctx, cmpoperations[cnum]);
@@ -904,14 +942,16 @@ TEST(intel64, instruction_set_test)
 
         newiopNoret(OP_XOR, { spilled32, spilled32, argIImm(257) });
 
-        newiopNoret(OP_SELECT, { rax, argIImm(OP_EQ), rax, rax });
-        newiopNoret(OP_SELECT, { rax, argIImm(OP_NE), rax, rax });
-        newiopNoret(OP_SELECT, { rax, argIImm(OP_LT), rax, rax });
-        newiopNoret(OP_SELECT, { rax, argIImm(OP_GT), rax, rax });
-        newiopNoret(OP_SELECT, { rax, argIImm(OP_LE), rax, rax });
-        newiopNoret(OP_SELECT, { rax, argIImm(OP_GE), rax, rax });
-        newiopNoret(OP_SELECT, { rax, argIImm(OP_S ), rax, rax });
-        newiopNoret(OP_SELECT, { rax, argIImm(OP_NS), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_NE ), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_EQ ), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_LT ), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_GT ), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_GE ), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_UGT), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_LE ), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_ULE), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_S  ), rax, rax });
+        newiopNoret(OP_SELECT, { rax, argIImm(OP_NS ), rax, rax });
 
         newiopNoret(OP_SELECT, { rdi, OP_EQ, rax, rdi });
         newiopNoret(OP_SELECT, { rax, OP_EQ, rdi, rax });
@@ -924,14 +964,16 @@ TEST(intel64, instruction_set_test)
         newiopNoret(OP_SELECT, { rdi, OP_EQ, spilled32, rdi });
         newiopNoret(OP_SELECT, { r8,  OP_EQ, spilled32, r8 });
 
-        newiopNoret(OP_IVERSON, { rax, argIImm(OP_EQ)});
-        newiopNoret(OP_IVERSON, { rax, argIImm(OP_NE)});
-        newiopNoret(OP_IVERSON, { rax, argIImm(OP_LT)});
-        newiopNoret(OP_IVERSON, { rax, argIImm(OP_GT)});
-        newiopNoret(OP_IVERSON, { rax, argIImm(OP_LE)});
-        newiopNoret(OP_IVERSON, { rax, argIImm(OP_GE)});
-        newiopNoret(OP_IVERSON, { rax, argIImm(OP_S )});
-        newiopNoret(OP_IVERSON, { rax, argIImm(OP_NS)});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_NE )});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_EQ )});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_LT )});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_GT )});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_GE )});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_UGT)});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_LE )});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_ULE)});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_S  )});
+        newiopNoret(OP_IVERSON, { rax, argIImm(OP_NS )});
 
         newiopNoret(OP_IVERSON, { rdi, argIImm(OP_EQ) });
         newiopNoret(OP_IVERSON, { r8 , argIImm(OP_EQ) });
@@ -1282,100 +1324,124 @@ TEST(intel64, instruction_set_test)
         newiopNoret(VOP_STORE, { r8 , ymm15_4f});
 
         newiopNoret(VOP_STORE, { rax, rax,  ymm0_8s });
+        newiopNoret(VOP_STORE, { rbp, rax,  ymm0_8s });
         newiopNoret(VOP_STORE, { rdi, rax,  ymm0_8s });
         newiopNoret(VOP_STORE, { rax, rdi,  ymm0_8s });
         newiopNoret(VOP_STORE, { rax, rax,  ymm7_8s });
         newiopNoret(VOP_STORE, { rax, rax,  ymm8_8s });
+        newiopNoret(VOP_STORE, { rbp, rax,  ymm8_8s });
         newiopNoret(VOP_STORE, { rdi, rax,  ymm8_8s });
         newiopNoret(VOP_STORE, { rax, rdi,  ymm8_8s });
         newiopNoret(VOP_STORE, { rax, rax, ymm15_8s });
         newiopNoret(VOP_STORE, {  r8, rax,  ymm0_8s });
+        newiopNoret(VOP_STORE, { r13, rax,  ymm0_8s });
         newiopNoret(VOP_STORE, { r15, rax,  ymm0_8s });
         newiopNoret(VOP_STORE, { rax, rdi,  ymm0_8s });
         newiopNoret(VOP_STORE, {  r8, rax,  ymm7_8s });
         newiopNoret(VOP_STORE, { rax,  r8,  ymm0_8s });
+        newiopNoret(VOP_STORE, { rbp,  r8,  ymm0_8s });
         newiopNoret(VOP_STORE, { rdi,  r8,  ymm0_8s });
         newiopNoret(VOP_STORE, { rax, r15,  ymm0_8s });
         newiopNoret(VOP_STORE, { rax,  r8,  ymm7_8s });
         newiopNoret(VOP_STORE, {  r8, rax,  ymm8_8s });
+        newiopNoret(VOP_STORE, { r13, rax,  ymm8_8s });
         newiopNoret(VOP_STORE, { r15, rax,  ymm8_8s });
         newiopNoret(VOP_STORE, {  r8, rdi,  ymm8_8s });
         newiopNoret(VOP_STORE, {  r8, rax, ymm15_8s });
         newiopNoret(VOP_STORE, { rax,  r8,  ymm8_8s });
+        newiopNoret(VOP_STORE, { rbp,  r8,  ymm8_8s });
         newiopNoret(VOP_STORE, { rdi,  r8,  ymm8_8s });
         newiopNoret(VOP_STORE, { rax, r15,  ymm8_8s });
         newiopNoret(VOP_STORE, { rax,  r8, ymm15_8s });
         newiopNoret(VOP_STORE, {  r8,  r8,  ymm0_8s });
+        newiopNoret(VOP_STORE, { r13,  r8,  ymm0_8s });
         newiopNoret(VOP_STORE, { r15,  r8,  ymm0_8s });
         newiopNoret(VOP_STORE, { rax, r15,  ymm0_8s });
         newiopNoret(VOP_STORE, {  r8,  r8,  ymm7_8s });
         newiopNoret(VOP_STORE, {  r8,  r8,  ymm8_8s });
+        newiopNoret(VOP_STORE, { r13,  r8,  ymm8_8s });
         newiopNoret(VOP_STORE, { r15,  r8,  ymm8_8s });
         newiopNoret(VOP_STORE, {  r8, r15,  ymm8_8s });
         newiopNoret(VOP_STORE, {  r8,  r8, ymm15_8s });
 
         newiopNoret(VOP_STORE, { rax, rax,  ymm0_8f });
+        newiopNoret(VOP_STORE, { rbp, rax,  ymm0_8f });
         newiopNoret(VOP_STORE, { rdi, rax,  ymm0_8f });
         newiopNoret(VOP_STORE, { rax, rdi,  ymm0_8f });
         newiopNoret(VOP_STORE, { rax, rax,  ymm7_8f });
         newiopNoret(VOP_STORE, { rax, rax,  ymm8_8f });
+        newiopNoret(VOP_STORE, { rbp, rax,  ymm8_8f });
         newiopNoret(VOP_STORE, { rdi, rax,  ymm8_8f });
         newiopNoret(VOP_STORE, { rax, rdi,  ymm8_8f });
         newiopNoret(VOP_STORE, { rax, rax, ymm15_8f });
         newiopNoret(VOP_STORE, {  r8, rax,  ymm0_8f });
+        newiopNoret(VOP_STORE, { r13, rax,  ymm0_8f });
         newiopNoret(VOP_STORE, { r15, rax,  ymm0_8f });
         newiopNoret(VOP_STORE, { rax, rdi,  ymm0_8f });
         newiopNoret(VOP_STORE, {  r8, rax,  ymm7_8f });
         newiopNoret(VOP_STORE, { rax,  r8,  ymm0_8f });
+        newiopNoret(VOP_STORE, { rbp,  r8,  ymm0_8f });
         newiopNoret(VOP_STORE, { rdi,  r8,  ymm0_8f });
         newiopNoret(VOP_STORE, { rax, r15,  ymm0_8f });
         newiopNoret(VOP_STORE, { rax,  r8,  ymm7_8f });
         newiopNoret(VOP_STORE, {  r8, rax,  ymm8_8f });
+        newiopNoret(VOP_STORE, { r13, rax,  ymm8_8f });
         newiopNoret(VOP_STORE, { r15, rax,  ymm8_8f });
         newiopNoret(VOP_STORE, {  r8, rdi,  ymm8_8f });
         newiopNoret(VOP_STORE, {  r8, rax, ymm15_8f });
         newiopNoret(VOP_STORE, { rax,  r8,  ymm8_8f });
+        newiopNoret(VOP_STORE, { rbp,  r8,  ymm8_8f });
         newiopNoret(VOP_STORE, { rdi,  r8,  ymm8_8f });
         newiopNoret(VOP_STORE, { rax, r15,  ymm8_8f });
         newiopNoret(VOP_STORE, { rax,  r8, ymm15_8f });
         newiopNoret(VOP_STORE, {  r8,  r8,  ymm0_8f });
+        newiopNoret(VOP_STORE, { r13,  r8,  ymm0_8f });
         newiopNoret(VOP_STORE, { r15,  r8,  ymm0_8f });
         newiopNoret(VOP_STORE, { rax, r15,  ymm0_8f });
         newiopNoret(VOP_STORE, {  r8,  r8,  ymm7_8f });
         newiopNoret(VOP_STORE, {  r8,  r8,  ymm8_8f });
+        newiopNoret(VOP_STORE, { r13,  r8,  ymm8_8f });
         newiopNoret(VOP_STORE, { r15,  r8,  ymm8_8f });
         newiopNoret(VOP_STORE, {  r8, r15,  ymm8_8f });
         newiopNoret(VOP_STORE, {  r8,  r8, ymm15_8f });
 
         newiopNoret(VOP_STORE, { rax, rax,  ymm0_4f });
+        newiopNoret(VOP_STORE, { rbp, rax,  ymm0_4f });
         newiopNoret(VOP_STORE, { rdi, rax,  ymm0_4f });
         newiopNoret(VOP_STORE, { rax, rdi,  ymm0_4f });
         newiopNoret(VOP_STORE, { rax, rax,  ymm7_4f });
         newiopNoret(VOP_STORE, { rax, rax,  ymm8_4f });
+        newiopNoret(VOP_STORE, { rbp, rax,  ymm8_4f });
         newiopNoret(VOP_STORE, { rdi, rax,  ymm8_4f });
         newiopNoret(VOP_STORE, { rax, rdi,  ymm8_4f });
         newiopNoret(VOP_STORE, { rax, rax, ymm15_4f });
         newiopNoret(VOP_STORE, {  r8, rax,  ymm0_4f });
+        newiopNoret(VOP_STORE, { r13, rax,  ymm0_4f });
         newiopNoret(VOP_STORE, { r15, rax,  ymm0_4f });
         newiopNoret(VOP_STORE, { rax, rdi,  ymm0_4f });
         newiopNoret(VOP_STORE, {  r8, rax,  ymm7_4f });
         newiopNoret(VOP_STORE, { rax,  r8,  ymm0_4f });
+        newiopNoret(VOP_STORE, { rbp,  r8,  ymm0_4f });
         newiopNoret(VOP_STORE, { rdi,  r8,  ymm0_4f });
         newiopNoret(VOP_STORE, { rax, r15,  ymm0_4f });
         newiopNoret(VOP_STORE, { rax,  r8,  ymm7_4f });
         newiopNoret(VOP_STORE, {  r8, rax,  ymm8_4f });
+        newiopNoret(VOP_STORE, { r13, rax,  ymm8_4f });
         newiopNoret(VOP_STORE, { r15, rax,  ymm8_4f });
         newiopNoret(VOP_STORE, {  r8, rdi,  ymm8_4f });
         newiopNoret(VOP_STORE, {  r8, rax, ymm15_4f });
         newiopNoret(VOP_STORE, { rax,  r8,  ymm8_4f });
+        newiopNoret(VOP_STORE, { rbp,  r8,  ymm8_4f });
         newiopNoret(VOP_STORE, { rdi,  r8,  ymm8_4f });
         newiopNoret(VOP_STORE, { rax, r15,  ymm8_4f });
         newiopNoret(VOP_STORE, { rax,  r8, ymm15_4f });
         newiopNoret(VOP_STORE, {  r8,  r8,  ymm0_4f });
+        newiopNoret(VOP_STORE, { r13,  r8,  ymm0_4f });
         newiopNoret(VOP_STORE, { r15,  r8,  ymm0_4f });
         newiopNoret(VOP_STORE, { rax, r15,  ymm0_4f });
         newiopNoret(VOP_STORE, {  r8,  r8,  ymm7_4f });
         newiopNoret(VOP_STORE, {  r8,  r8,  ymm8_4f });
+        newiopNoret(VOP_STORE, { r13,  r8,  ymm8_4f });
         newiopNoret(VOP_STORE, { r15,  r8,  ymm8_4f });
         newiopNoret(VOP_STORE, {  r8, r15,  ymm8_4f });
         newiopNoret(VOP_STORE, {  r8,  r8, ymm15_4f });        
@@ -2134,6 +2200,32 @@ TEST(intel64, instruction_set_test)
         newiopNoret(VOP_CAST, { ymm15_8f,  ymm8_8s });
         newiopNoret(VOP_CAST, {  ymm8_8f, ymm15_8s });
 
+        newiopNoret(VOP_CAST_LOW, {  ymm0_16s,  ymm0_32s });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_16s,  ymm0_32s });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_16s,  ymm7_32s });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_16s,  ymm0_32s });
+        newiopNoret(VOP_CAST_LOW, { ymm15_16s,  ymm0_32s });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_16s,  ymm7_32s });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_16s,  ymm8_32s });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_16s,  ymm8_32s });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_16s, ymm15_32s });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_16s,  ymm8_32s });
+        newiopNoret(VOP_CAST_LOW, { ymm15_16s,  ymm8_32s });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_16s, ymm15_32s });
+
+        newiopNoret(VOP_CAST_LOW, {  ymm0_8s,  ymm0_16s });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_8s,  ymm0_16s });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_8s,  ymm7_16s });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_8s,  ymm0_16s });
+        newiopNoret(VOP_CAST_LOW, { ymm15_8s,  ymm0_16s });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_8s,  ymm7_16s });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_8s,  ymm8_16s });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_8s,  ymm8_16s });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_8s, ymm15_16s });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_8s,  ymm8_16s });
+        newiopNoret(VOP_CAST_LOW, { ymm15_8s,  ymm8_16s });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_8s, ymm15_16s });
+
         newiopNoret(VOP_CAST_LOW, {  ymm0_4s,  ymm0_8s });
         newiopNoret(VOP_CAST_LOW, {  ymm7_4s,  ymm0_8s });
         newiopNoret(VOP_CAST_LOW, {  ymm0_4s,  ymm7_8s });
@@ -2146,6 +2238,59 @@ TEST(intel64, instruction_set_test)
         newiopNoret(VOP_CAST_LOW, {  ymm8_4s,  ymm8_8s });
         newiopNoret(VOP_CAST_LOW, { ymm15_4s,  ymm8_8s });
         newiopNoret(VOP_CAST_LOW, {  ymm8_4s, ymm15_8s });
+
+
+        newiopNoret(VOP_CAST_LOW, {  ymm0_16u,  ymm0_32u });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_16u,  ymm0_32u });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_16u,  ymm7_32u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_16u,  ymm0_32u });
+        newiopNoret(VOP_CAST_LOW, { ymm15_16u,  ymm0_32u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_16u,  ymm7_32u });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_16u,  ymm8_32u });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_16u,  ymm8_32u });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_16u, ymm15_32u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_16u,  ymm8_32u });
+        newiopNoret(VOP_CAST_LOW, { ymm15_16u,  ymm8_32u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_16u, ymm15_32u });
+
+        newiopNoret(VOP_CAST_LOW, {  ymm0_8u,  ymm0_16u });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_8u,  ymm0_16u });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_8u,  ymm7_16u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_8u,  ymm0_16u });
+        newiopNoret(VOP_CAST_LOW, { ymm15_8u,  ymm0_16u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_8u,  ymm7_16u });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_8u,  ymm8_16u });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_8u,  ymm8_16u });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_8u, ymm15_16u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_8u,  ymm8_16u });
+        newiopNoret(VOP_CAST_LOW, { ymm15_8u,  ymm8_16u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_8u, ymm15_16u });
+
+        newiopNoret(VOP_CAST_LOW, {  ymm0_4u,  ymm0_8u });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_4u,  ymm0_8u });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_4u,  ymm7_8u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_4u,  ymm0_8u });
+        newiopNoret(VOP_CAST_LOW, { ymm15_4u,  ymm0_8u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_4u,  ymm7_8u });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_4u,  ymm8_8u });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_4u,  ymm8_8u });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_4u, ymm15_8u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_4u,  ymm8_8u });
+        newiopNoret(VOP_CAST_LOW, { ymm15_4u,  ymm8_8u });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_4u, ymm15_8u });
+
+        newiopNoret(VOP_CAST_LOW, {  ymm0_4f,  ymm0_8f });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_4f,  ymm0_8f });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_4f,  ymm7_8f });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_4f,  ymm0_8f });
+        newiopNoret(VOP_CAST_LOW, { ymm15_4f,  ymm0_8f });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_4f,  ymm7_8f });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_4f,  ymm8_8f });
+        newiopNoret(VOP_CAST_LOW, {  ymm7_4f,  ymm8_8f });
+        newiopNoret(VOP_CAST_LOW, {  ymm0_4f, ymm15_8f });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_4f,  ymm8_8f });
+        newiopNoret(VOP_CAST_LOW, { ymm15_4f,  ymm8_8f });
+        newiopNoret(VOP_CAST_LOW, {  ymm8_4f, ymm15_8f });
 
         newiopNoret(VOP_AND, {  ymm0_32s,  ymm0_32s,  ymm0_32u});
         newiopNoret(VOP_AND, {  ymm7_32s,  ymm0_32s,  ymm0_32u});
@@ -2659,83 +2804,83 @@ TEST(intel64, instruction_set_test)
         newiopNoret(VOP_GT, {  ymm0_4u,  ymm7_4s,  ymm8_4s});
         newiopNoret(VOP_GT, {  ymm0_4u,  ymm0_4s, ymm15_4s});
 
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16s,  ymm0_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm7_16s,  ymm0_16s,  ymm0_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm7_16s,  ymm0_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16s,  ymm7_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16s,  ymm0_16s,  ymm7_16u});
-        newiopNoret(VOP_SELECT, {  ymm8_16s,  ymm0_16s,  ymm0_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, { ymm15_16s,  ymm0_16s,  ymm0_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm8_16s,  ymm7_16s,  ymm0_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm8_16s,  ymm0_16s,  ymm7_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm8_16s,  ymm0_16s,  ymm0_16s,  ymm7_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm8_16s,  ymm0_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm7_16s,  ymm8_16s,  ymm0_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s, ymm15_16s,  ymm0_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm8_16s,  ymm7_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm8_16s,  ymm0_16s,  ymm7_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16s,  ymm8_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm7_16s,  ymm0_16s,  ymm8_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm7_16s,  ymm8_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16s, ymm15_16s,  ymm0_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16s,  ymm8_16s,  ymm7_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16s,  ymm0_16s,  ymm8_16u});
-        newiopNoret(VOP_SELECT, {  ymm7_16s,  ymm0_16s,  ymm0_16s,  ymm8_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm7_16s,  ymm0_16s,  ymm8_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16s,  ymm7_16s,  ymm8_16u});
-        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16s,  ymm0_16s, ymm15_16u});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16u,  ymm0_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm7_16s,  ymm0_16u,  ymm0_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm7_16u,  ymm0_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16u,  ymm0_16s,  ymm7_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16u,  ymm7_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm8_16s,  ymm0_16u,  ymm0_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, { ymm15_16s,  ymm0_16u,  ymm0_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm8_16s,  ymm7_16u,  ymm0_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm8_16s,  ymm0_16u,  ymm0_16s,  ymm7_16s});
+        newiopNoret(VOP_SELECT, {  ymm8_16s,  ymm0_16u,  ymm7_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm8_16u,  ymm0_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm7_16s,  ymm8_16u,  ymm0_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s, ymm15_16u,  ymm0_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm8_16u,  ymm0_16s,  ymm7_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm8_16u,  ymm7_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16u,  ymm0_16s,  ymm8_16s});
+        newiopNoret(VOP_SELECT, {  ymm7_16s,  ymm0_16u,  ymm0_16s,  ymm8_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm7_16u,  ymm0_16s,  ymm8_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16u,  ymm0_16s, ymm15_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16u,  ymm7_16s,  ymm8_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16u,  ymm8_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm7_16s,  ymm0_16u,  ymm8_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm7_16u,  ymm8_16s,  ymm0_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16u,  ymm8_16s,  ymm7_16s});
+        newiopNoret(VOP_SELECT, {  ymm0_16s,  ymm0_16u, ymm15_16s,  ymm0_16s});
 
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8f,  ymm0_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm7_8f,  ymm0_8f,  ymm0_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm7_8f,  ymm0_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8f,  ymm7_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8f,  ymm0_8f,  ymm7_8u});
-        newiopNoret(VOP_SELECT, {  ymm8_8f,  ymm0_8f,  ymm0_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, { ymm15_8f,  ymm0_8f,  ymm0_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm8_8f,  ymm7_8f,  ymm0_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm8_8f,  ymm0_8f,  ymm7_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm8_8f,  ymm0_8f,  ymm0_8f,  ymm7_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm8_8f,  ymm0_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm7_8f,  ymm8_8f,  ymm0_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f, ymm15_8f,  ymm0_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm8_8f,  ymm7_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm8_8f,  ymm0_8f,  ymm7_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8f,  ymm8_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm7_8f,  ymm0_8f,  ymm8_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm7_8f,  ymm8_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8f, ymm15_8f,  ymm0_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8f,  ymm8_8f,  ymm7_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8f,  ymm0_8f,  ymm8_8u});
-        newiopNoret(VOP_SELECT, {  ymm7_8f,  ymm0_8f,  ymm0_8f,  ymm8_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm7_8f,  ymm0_8f,  ymm8_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8f,  ymm7_8f,  ymm8_8u});
-        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8f,  ymm0_8f, ymm15_8u});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8u,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm7_8f,  ymm0_8u,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm7_8u,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8u,  ymm0_8f,  ymm7_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8u,  ymm7_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm8_8f,  ymm0_8u,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, { ymm15_8f,  ymm0_8u,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm8_8f,  ymm7_8u,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm8_8f,  ymm0_8u,  ymm0_8f,  ymm7_8f});
+        newiopNoret(VOP_SELECT, {  ymm8_8f,  ymm0_8u,  ymm7_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm8_8u,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm7_8f,  ymm8_8u,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f, ymm15_8u,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm8_8u,  ymm0_8f,  ymm7_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm8_8u,  ymm7_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8u,  ymm0_8f,  ymm8_8f});
+        newiopNoret(VOP_SELECT, {  ymm7_8f,  ymm0_8u,  ymm0_8f,  ymm8_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm7_8u,  ymm0_8f,  ymm8_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8u,  ymm0_8f, ymm15_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8u,  ymm7_8f,  ymm8_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8u,  ymm8_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm7_8f,  ymm0_8u,  ymm8_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm7_8u,  ymm8_8f,  ymm0_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8u,  ymm8_8f,  ymm7_8f});
+        newiopNoret(VOP_SELECT, {  ymm0_8f,  ymm0_8u, ymm15_8f,  ymm0_8f});
 
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4f,  ymm0_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm7_4f,  ymm0_4f,  ymm0_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm7_4f,  ymm0_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4f,  ymm7_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4f,  ymm0_4f,  ymm7_4u});
-        newiopNoret(VOP_SELECT, {  ymm8_4f,  ymm0_4f,  ymm0_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, { ymm15_4f,  ymm0_4f,  ymm0_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm8_4f,  ymm7_4f,  ymm0_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm8_4f,  ymm0_4f,  ymm7_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm8_4f,  ymm0_4f,  ymm0_4f,  ymm7_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm8_4f,  ymm0_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm7_4f,  ymm8_4f,  ymm0_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f, ymm15_4f,  ymm0_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm8_4f,  ymm7_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm8_4f,  ymm0_4f,  ymm7_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4f,  ymm8_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm7_4f,  ymm0_4f,  ymm8_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm7_4f,  ymm8_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4f, ymm15_4f,  ymm0_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4f,  ymm8_4f,  ymm7_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4f,  ymm0_4f,  ymm8_4u});
-        newiopNoret(VOP_SELECT, {  ymm7_4f,  ymm0_4f,  ymm0_4f,  ymm8_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm7_4f,  ymm0_4f,  ymm8_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4f,  ymm7_4f,  ymm8_4u});
-        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4f,  ymm0_4f, ymm15_4u});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4u,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm7_4f,  ymm0_4u,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm7_4u,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4u,  ymm0_4f,  ymm7_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4u,  ymm7_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm8_4f,  ymm0_4u,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, { ymm15_4f,  ymm0_4u,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm8_4f,  ymm7_4u,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm8_4f,  ymm0_4u,  ymm0_4f,  ymm7_4f});
+        newiopNoret(VOP_SELECT, {  ymm8_4f,  ymm0_4u,  ymm7_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm8_4u,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm7_4f,  ymm8_4u,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f, ymm15_4u,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm8_4u,  ymm0_4f,  ymm7_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm8_4u,  ymm7_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4u,  ymm0_4f,  ymm8_4f});
+        newiopNoret(VOP_SELECT, {  ymm7_4f,  ymm0_4u,  ymm0_4f,  ymm8_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm7_4u,  ymm0_4f,  ymm8_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4u,  ymm0_4f, ymm15_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4u,  ymm7_4f,  ymm8_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4u,  ymm8_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm7_4f,  ymm0_4u,  ymm8_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm7_4u,  ymm8_4f,  ymm0_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4u,  ymm8_4f,  ymm7_4f});
+        newiopNoret(VOP_SELECT, {  ymm0_4f,  ymm0_4u, ymm15_4f,  ymm0_4f});
 
         newiopNoret(VOP_BROADCAST, {  ymm0_32u,  ymm0_32u, argIImm(0) });
         newiopNoret(VOP_BROADCAST, {  ymm7_32u,  ymm0_32u, argIImm(0) });
@@ -2789,33 +2934,33 @@ TEST(intel64, instruction_set_test)
         newiopNoret(VOP_BROADCAST, { ymm15_4u,  ymm8_4u, argIImm(0) });
         newiopNoret(VOP_BROADCAST, {  ymm8_4u, ymm15_4u, argIImm(0) });
 
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm0_32u,  ymm0_32u, argIImm(0) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm0_32u,  ymm0_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm7_32u,  ymm0_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm0_32u,  ymm7_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm8_32u,  ymm0_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, { ymm15_32u,  ymm0_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm8_32u,  ymm7_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm0_32u,  ymm8_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm7_32u,  ymm8_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm0_32u, ymm15_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm8_32u,  ymm8_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, { ymm15_32u,  ymm8_32u, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTI128, {  ymm8_32u, ymm15_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_32u,  ymm0_32u, argIImm(0) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_32u,  ymm0_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm7_32u,  ymm0_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_32u,  ymm7_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm8_32u,  ymm0_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, { ymm15_32u,  ymm0_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm8_32u,  ymm7_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_32u,  ymm8_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm7_32u,  ymm8_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_32u, ymm15_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm8_32u,  ymm8_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, { ymm15_32u,  ymm8_32u, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm8_32u, ymm15_32u, argIImm(1) });
 
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm0_8f,  ymm0_8f, argIImm(0) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm0_8f,  ymm0_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm7_8f,  ymm0_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm0_8f,  ymm7_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm8_8f,  ymm0_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, { ymm15_8f,  ymm0_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm8_8f,  ymm7_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm0_8f,  ymm8_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm7_8f,  ymm8_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm0_8f, ymm15_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm8_8f,  ymm8_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, { ymm15_8f,  ymm8_8f, argIImm(1) });
-        newiopNoret(VOP_X86_VEXTRACTF128, {  ymm8_8f, ymm15_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_8f,  ymm0_8f, argIImm(0) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_8f,  ymm0_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm7_8f,  ymm0_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_8f,  ymm7_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm8_8f,  ymm0_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, { ymm15_8f,  ymm0_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm8_8f,  ymm7_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_8f,  ymm8_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm7_8f,  ymm8_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm0_8f, ymm15_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm8_8f,  ymm8_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, { ymm15_8f,  ymm8_8f, argIImm(1) });
+        newiopNoret(VOP_X86_VEXTRACT128, {  ymm8_8f, ymm15_8f, argIImm(1) });
 
         newiopNoret(VOP_GETLANE, { rax, ymm0_32u , argIImm(1)});
         newiopNoret(VOP_GETLANE, { rdi, ymm0_32u , argIImm(1)});
@@ -2869,41 +3014,41 @@ TEST(intel64, instruction_set_test)
         newiopNoret(VOP_GETLANE, { r15, ymm8_4u , argIImm(1)});
         newiopNoret(VOP_GETLANE, { r8 , ymm15_4u, argIImm(1)});
 
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(0),  ymm0_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(1),  ymm0_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm7_32u, argIImm(1),  ymm0_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(1),  ymm7_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(1),  ymm0_32u,  ymm7_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm8_32u, argIImm(1),  ymm0_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, { ymm15_32u, argIImm(1),  ymm0_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm8_32u, argIImm(1),  ymm7_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm8_32u, argIImm(1),  ymm0_32u,  ymm7_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(1),  ymm8_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm7_32u, argIImm(1),  ymm8_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(1), ymm15_32u,  ymm0_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(1),  ymm8_32u,  ymm7_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(1),  ymm0_32u,  ymm8_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm7_32u, argIImm(1),  ymm0_32u,  ymm8_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(1),  ymm7_32u,  ymm8_32u});
-        newiopNoret(VOP_X86_VINSERTI128, {  ymm0_32u, argIImm(1),  ymm0_32u, ymm15_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(0),  ymm0_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(1),  ymm0_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm7_32u, argIImm(1),  ymm0_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(1),  ymm7_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(1),  ymm0_32u,  ymm7_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm8_32u, argIImm(1),  ymm0_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, { ymm15_32u, argIImm(1),  ymm0_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm8_32u, argIImm(1),  ymm7_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm8_32u, argIImm(1),  ymm0_32u,  ymm7_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(1),  ymm8_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm7_32u, argIImm(1),  ymm8_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(1), ymm15_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(1),  ymm8_32u,  ymm7_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(1),  ymm0_32u,  ymm8_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm7_32u, argIImm(1),  ymm0_32u,  ymm8_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(1),  ymm7_32u,  ymm8_32u});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_32u, argIImm(1),  ymm0_32u, ymm15_32u});
 
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(0),  ymm0_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(1),  ymm0_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm7_8f, argIImm(1),  ymm0_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(1),  ymm7_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(1),  ymm0_8f,  ymm7_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm8_8f, argIImm(1),  ymm0_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, { ymm15_8f, argIImm(1),  ymm0_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm8_8f, argIImm(1),  ymm7_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm8_8f, argIImm(1),  ymm0_8f,  ymm7_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(1),  ymm8_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm7_8f, argIImm(1),  ymm8_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(1), ymm15_8f,  ymm0_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(1),  ymm8_8f,  ymm7_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(1),  ymm0_8f,  ymm8_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm7_8f, argIImm(1),  ymm0_8f,  ymm8_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(1),  ymm7_8f,  ymm8_8f});
-        newiopNoret(VOP_X86_VINSERTF128, {  ymm0_8f, argIImm(1),  ymm0_8f, ymm15_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(0),  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(1),  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm7_8f, argIImm(1),  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(1),  ymm7_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(1),  ymm0_8f,  ymm7_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm8_8f, argIImm(1),  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, { ymm15_8f, argIImm(1),  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm8_8f, argIImm(1),  ymm7_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm8_8f, argIImm(1),  ymm0_8f,  ymm7_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(1),  ymm8_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm7_8f, argIImm(1),  ymm8_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(1), ymm15_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(1),  ymm8_8f,  ymm7_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(1),  ymm0_8f,  ymm8_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm7_8f, argIImm(1),  ymm0_8f,  ymm8_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(1),  ymm7_8f,  ymm8_8f});
+        newiopNoret(VOP_X86_VINSERT128, {  ymm0_8f, argIImm(1),  ymm0_8f, ymm15_8f});
 
         newiopNoret(VOP_SETLANE, {  ymm0_32u , argIImm(0), rax });
         newiopNoret(VOP_SETLANE, {  ymm0_32u , argIImm(1), rax });
@@ -2960,6 +3105,157 @@ TEST(intel64, instruction_set_test)
         newiopNoret(VOP_SETLANE, {  ymm8_4u , argIImm(1),  r8 });
         newiopNoret(VOP_SETLANE, { ymm15_4u , argIImm(1),  r8 });
         newiopNoret(VOP_SETLANE, {  ymm8_4u , argIImm(1), r15 });
+
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u,  ymm0_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u,  ymm0_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm7_32u,  ymm0_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u,  ymm7_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u,  ymm0_32u,  ymm7_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm8_32u,  ymm0_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, { ymm15_32u,  ymm0_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm8_32u,  ymm7_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm8_32u,  ymm0_32u,  ymm7_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u,  ymm8_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm7_32u,  ymm8_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u, ymm15_32u,  ymm0_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u,  ymm8_32u,  ymm7_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u,  ymm0_32u,  ymm8_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm7_32u,  ymm0_32u,  ymm8_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u,  ymm7_32u,  ymm8_32u, argIImm(0x21)});
+        newiopNoret(VOP_X86_VPERM2I128, {  ymm0_32u,  ymm0_32u, ymm15_32u, argIImm(0x21)});
+
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u,  ymm0_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u,  ymm0_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm7_32u,  ymm0_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u,  ymm7_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u,  ymm0_32u,  ymm7_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm8_32u,  ymm0_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, { ymm15_32u,  ymm0_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm8_32u,  ymm7_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm8_32u,  ymm0_32u,  ymm7_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u,  ymm8_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm7_32u,  ymm8_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u, ymm15_32u,  ymm0_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u,  ymm8_32u,  ymm7_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u,  ymm0_32u,  ymm8_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm7_32u,  ymm0_32u,  ymm8_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u,  ymm7_32u,  ymm8_32u, argIImm(15)});
+        newiopNoret(VOP_X86_VPALIGNR, {  ymm0_32u,  ymm0_32u, ymm15_32u, argIImm(15)});
+
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm0_8u,  ymm0_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm7_8u,  ymm0_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm0_8u,  ymm7_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm8_8u,  ymm0_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, { ymm15_8u,  ymm0_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm8_8u,  ymm7_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm0_8u,  ymm8_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm7_8u,  ymm8_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm0_8u, ymm15_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm8_8u,  ymm8_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, { ymm15_8u,  ymm8_8u, argIImm(238) });
+        newiopNoret(VOP_X86_VPSHUFD, {  ymm8_8u, ymm15_8u, argIImm(238) });
+
+        newiopNoret(VOP_X86_VPSADBW, {  ymm0_8u,  ymm0_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm7_8u,  ymm0_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm0_8u,  ymm7_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm0_8u,  ymm0_32u,  ymm7_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm8_8u,  ymm0_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VPSADBW, { ymm15_8u,  ymm0_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm8_8u,  ymm7_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm8_8u,  ymm0_32u,  ymm7_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm0_8u,  ymm8_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm7_8u,  ymm8_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm0_8u, ymm15_32u,  ymm0_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm0_8u,  ymm8_32u,  ymm7_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm0_8u,  ymm0_32u,  ymm8_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm7_8u,  ymm0_32u,  ymm8_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm0_8u,  ymm7_32u,  ymm8_32u});
+        newiopNoret(VOP_X86_VPSADBW, {  ymm0_8u,  ymm0_32u, ymm15_32u});
+
+        newiopNoret(VOP_X86_VPHADDD, {  ymm0_8s,  ymm0_8s,  ymm0_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm7_8s,  ymm0_8s,  ymm0_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm0_8s,  ymm7_8s,  ymm0_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm0_8s,  ymm0_8s,  ymm7_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm8_8s,  ymm0_8s,  ymm0_8s});
+        newiopNoret(VOP_X86_VPHADDD, { ymm15_8s,  ymm0_8s,  ymm0_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm8_8s,  ymm7_8s,  ymm0_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm8_8s,  ymm0_8s,  ymm7_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm0_8s,  ymm8_8s,  ymm0_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm7_8s,  ymm8_8s,  ymm0_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm0_8s, ymm15_8s,  ymm0_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm0_8s,  ymm8_8s,  ymm7_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm0_8s,  ymm0_8s,  ymm8_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm7_8s,  ymm0_8s,  ymm8_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm0_8s,  ymm7_8s,  ymm8_8s});
+        newiopNoret(VOP_X86_VPHADDD, {  ymm0_8s,  ymm0_8s, ymm15_8s});
+
+        newiopNoret(VOP_X86_VHADDPS, {  ymm0_8f,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm7_8f,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm0_8f,  ymm7_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm0_8f,  ymm0_8f,  ymm7_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm8_8f,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VHADDPS, { ymm15_8f,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm8_8f,  ymm7_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm8_8f,  ymm0_8f,  ymm7_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm0_8f,  ymm8_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm7_8f,  ymm8_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm0_8f, ymm15_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm0_8f,  ymm8_8f,  ymm7_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm0_8f,  ymm0_8f,  ymm8_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm7_8f,  ymm0_8f,  ymm8_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm0_8f,  ymm7_8f,  ymm8_8f});
+        newiopNoret(VOP_X86_VHADDPS, {  ymm0_8f,  ymm0_8f, ymm15_8f});
+
+        newiopNoret(VOP_X86_VADDSS, {  ymm0_8f,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm7_8f,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm0_8f,  ymm7_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm0_8f,  ymm0_8f,  ymm7_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm8_8f,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VADDSS, { ymm15_8f,  ymm0_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm8_8f,  ymm7_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm8_8f,  ymm0_8f,  ymm7_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm0_8f,  ymm8_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm7_8f,  ymm8_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm0_8f, ymm15_8f,  ymm0_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm0_8f,  ymm8_8f,  ymm7_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm0_8f,  ymm0_8f,  ymm8_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm7_8f,  ymm0_8f,  ymm8_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm0_8f,  ymm7_8f,  ymm8_8f});
+        newiopNoret(VOP_X86_VADDSS, {  ymm0_8f,  ymm0_8f, ymm15_8f});
+
+        newiopNoret(VOP_X86_VHADDPD, {  ymm0_4f,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm7_4f,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm0_4f,  ymm7_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm0_4f,  ymm0_4f,  ymm7_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm8_4f,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VHADDPD, { ymm15_4f,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm8_4f,  ymm7_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm8_4f,  ymm0_4f,  ymm7_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm0_4f,  ymm8_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm7_4f,  ymm8_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm0_4f, ymm15_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm0_4f,  ymm8_4f,  ymm7_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm0_4f,  ymm0_4f,  ymm8_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm7_4f,  ymm0_4f,  ymm8_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm0_4f,  ymm7_4f,  ymm8_4f});
+        newiopNoret(VOP_X86_VHADDPD, {  ymm0_4f,  ymm0_4f, ymm15_4f});
+
+        newiopNoret(VOP_X86_VADDSD, {  ymm0_4f,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm7_4f,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm0_4f,  ymm7_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm0_4f,  ymm0_4f,  ymm7_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm8_4f,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VADDSD, { ymm15_4f,  ymm0_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm8_4f,  ymm7_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm8_4f,  ymm0_4f,  ymm7_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm0_4f,  ymm8_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm7_4f,  ymm8_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm0_4f, ymm15_4f,  ymm0_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm0_4f,  ymm8_4f,  ymm7_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm0_4f,  ymm0_4f,  ymm8_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm7_4f,  ymm0_4f,  ymm8_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm0_4f,  ymm7_4f,  ymm8_4f});
+        newiopNoret(VOP_X86_VADDSD, {  ymm0_4f,  ymm0_4f, ymm15_4f});
 
         newiopNoret(OP_CALL_NORET, { rax });
         newiopNoret(OP_CALL_NORET, { rdi });
