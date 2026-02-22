@@ -5,7 +5,6 @@ See https://github.com/4ekmah/loops/LICENSE
 */
 
 #include "loops/loops.hpp"
-#include "collections.hpp"
 #include "printer.hpp"
 #include "backend_aarch64.hpp"
 #include "backend_intel64.hpp"
@@ -20,79 +19,56 @@ See https://github.com/4ekmah/loops/LICENSE
 #include <cstring>
 
 
-LOOPS_HASHMAP_STATIC(int, loops_cstring) errstrings_[] = 
+namespace loops
 {
-                  /*  |                   enum_id                   |                                    string_id                                   |   */
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_SUCCESS                            , "Loops: Success."                                                              ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_NULL_POINTER                       , "Loops: Null pointer."                                                         ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_POINTER_ARITHMETIC_ERROR           , "Loops: Pointer arithmetic error."                                             ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_OUT_OF_MEMORY                      , "Loops: Out of memory."                                                        ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_UNKNOWN_FLAG                       , "Loops: Unknown flag."                                                         ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_POSITIVE_SIZE_NEEDED               , "Loops: Negative size."                                                        ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_UNIMAGINARY_BIG_STRING             , "Loops: Unpredicted very big string."                                          ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_UNPRINTABLE_OPERATION              , "Loops: Unprintable operation."                                                ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_UNKNOWN_TYPE                       , "Loops: Unknown type."                                                         ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_UNKNOWN_CONDITION                  , "Loops: Unknown condition type."                                               ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_INCORRECT_OPERATION_FORMAT         , "Loops: Incorrect operation format."                                           ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_INCORRECT_ARGUMENT                 , "Loops: Incorrect argument."                                                   ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_UNKNOWN_ARGUMENT_TYPE              , "Loops: Unknown argument type."                                                ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_INTERNAL_UNKNOWN_PRINT_DESTINATION , "Loops: Internal error: unknown type of output stream."                        ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_INTERNAL_BUFFER_SIZE_MISCALCULATION, "Loops: Internal error: printer output buffer size was calculated incorrectly."),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_INTERNAL_INCORRECT_OFFSET          , "Loops: Internal error: incorrect operation offset."                           ),
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_ELEMENT_NOT_FOUND                  , "Loops: Element not found."                                                    ), 
-    LOOPS_HASHMAP_ELEM(LOOPS_ERR_INCORRECT_LANE_INDEX               , "Loops: Negative or to big lane index."                                        ), 
-};
-LOOPS_HASHMAP(int, loops_cstring) errstrings = NULL;
 
-static void loops_initialize();
-#if defined(_MSC_VER) && defined(_WIN64)
-    #pragma section(".CRT$XCT",read)
-    __declspec(allocate(".CRT$XCT")) void (*loops_initialize_)(void) = loops_initialize;
-#elif defined(_MSC_VER) && !defined(_WIN64)
-    #error Win32 is not supported.
-#else
-    static void loops_initialize_(void) __attribute__((constructor));
-    static void loops_initialize_(void) { loops_initialize(); }
-#endif
-static void finalize(void)
+inline cstring errstrings_getter(int errcode)
 {
-    printer_h_deinitialize();
-    loops_hashmap_destruct(errstrings);
-}
-
-static void loops_initialize()
-{
-    int err;
-    const char* init_error_msg = "Loops: Initialization error. Code: %d\n";
-    err = loops_hashmap_construct_static(&errstrings, errstrings_, sizeof(errstrings_) / sizeof(errstrings_[0]));
-    if(err != LOOPS_ERR_SUCCESS) printf(init_error_msg, err);
-    printer_h_initialize(); if(err != LOOPS_ERR_SUCCESS) printf(init_error_msg, err);
-    atexit(finalize);
-}
-
-char* loops_strncpy(char* dest, const char* src, std::size_t count)
-{
-#if _MSC_VER
-    strncpy_s(dest, count, src, _TRUNCATE);
-    return dest;
-#else
-    return strncpy(dest, src, count);
-#endif  
+    switch (errcode)
+    {
+                  /*  |                   enum_id                 |                               string_id                               |   */
+    case (LOOPS_ERR_SUCCESS                            ) : return "Success."                                                              ;
+    case (LOOPS_ERR_NULL_POINTER                       ) : return "Null pointer."                                                         ;
+    case (LOOPS_ERR_POINTER_ARITHMETIC_ERROR           ) : return "Pointer arithmetic error."                                             ;
+    case (LOOPS_ERR_OUT_OF_MEMORY                      ) : return "Out of memory."                                                        ;
+    case (LOOPS_ERR_UNKNOWN_FLAG                       ) : return "Unknown flag."                                                         ;
+    case (LOOPS_ERR_POSITIVE_SIZE_NEEDED               ) : return "Negative size."                                                        ;
+    case (LOOPS_ERR_UNIMAGINARY_BIG_STRING             ) : return "Unpredicted very big string."                                          ;
+    case (LOOPS_ERR_UNPRINTABLE_OPERATION              ) : return "Unprintable operation."                                                ;
+    case (LOOPS_ERR_UNKNOWN_TYPE                       ) : return "Unknown type."                                                         ;
+    case (LOOPS_ERR_UNKNOWN_CONDITION                  ) : return "Unknown condition type."                                               ;
+    case (LOOPS_ERR_INCORRECT_OPERATION_FORMAT         ) : return "Incorrect operation format."                                           ;
+    case (LOOPS_ERR_INCORRECT_ARGUMENT                 ) : return "Incorrect argument."                                                   ;
+    case (LOOPS_ERR_UNKNOWN_ARGUMENT_TYPE              ) : return "Unknown argument type."                                                ;
+    case (LOOPS_ERR_INTERNAL_UNKNOWN_PRINT_DESTINATION ) : return "Internal error: unknown type of output stream."                        ;
+    case (LOOPS_ERR_INTERNAL_BUFFER_SIZE_MISCALCULATION) : return "Internal error: printer output buffer size was calculated incorrectly.";
+    case (LOOPS_ERR_INTERNAL_INCORRECT_OFFSET          ) : return "Internal error: incorrect operation offset."                           ;
+    case (LOOPS_ERR_ELEMENT_NOT_FOUND                  ) : return "Element not found."                                                    ;
+    case (LOOPS_ERR_INCORRECT_LANE_INDEX               ) : return "Negative or to big lane index."                                        ;
+    case (LOOPS_ERR_TOO_MUCH_ARGS                      ) : return "Too much args!"                                                        ;
+    case (LOOPS_MEMORY_ALLOCATION_FAILURE              ) : return "Memory allocation failure."                                            ;
+    case (LOOPS_MEMORY_PROTECTION_FAILURE              ) : return "Memory protection failure."                                            ;
+    case (LOOPS_SYN_T_NON_EXISTENT_ARG                 ) : return "Syntop translator: non-existent argument is requested."                ;
+    };
+    return nullptr;
 }
 
 const char* get_errstring(int errid)
 {
     static const char* unknown_err = "Loops: Unknown error. Problem in error system.";
-    const char* result = NULL; 
-    int err = loops_hashmap_get(errstrings, errid, &result);
-    if(err == LOOPS_ERR_ELEMENT_NOT_FOUND)
+    const char* result = errstrings_getter(errid);
+    if(result == nullptr)
         return unknown_err;
     else 
         return result;
 }
 
-namespace loops
+const char* exception::what() const noexcept 
 {
+    compiled_message = std::string("Loops: ") + (message.length() ? message : std::string(loops::get_errstring(errid)));
+    return compiled_message.c_str();
+}
+
 #if !(__LOOPS_ARCH == __LOOPS_AARCH64 && __LOOPS_OS == __LOOPS_MAC)
     /*
     Next four functions are taken from FP16 library.
@@ -214,12 +190,12 @@ namespace loops
                 break;
             }
         if (inferedfunc == nullptr)
-            throw std::runtime_error("Cannot find mother function in expression arguments.");
+            throw loops::exception("Cannot find mother function in expression arguments.");
         for(Expr arg : args)
             if(arg.func() == nullptr)
                 arg.infer_owner(inferedfunc);
             else if(arg.func() != inferedfunc)
-                throw std::runtime_error("Registers of different functions as arguments of one expression.");
+                throw loops::exception("Registers of different functions as arguments of one expression.");
         return static_cast<FuncImpl*>(inferedfunc);
     }
 
@@ -230,10 +206,10 @@ namespace loops
         Expr from_(fromwho.notype());
         func = verify_owner({from_});
         if(fromwho.opcode() == EXPR_LEAF && fromwho.leaf().tag == Arg::IIMMEDIATE && func == nullptr)
-            throw std::runtime_error("Direct immediate assignment must be done via CONST_ operator, e.g.:\n    IReg var = CONST_(val);\n");
+            throw loops::exception("Direct immediate assignment must be done via CONST_ operator, e.g.:\n    IReg var = CONST_(val);\n");
         Expr fromwho_(fromwho.notype());
         Arg unpacked = static_cast<FuncImpl*>(func)->get_code_collecting()->reg_constr(fromwho_);
-        Assert(unpacked.tag == Arg::IREG);
+        LOOPS_ASSERT(unpacked.tag == Arg::IREG);
         idx = unpacked.idx;
     }
 
@@ -244,7 +220,7 @@ namespace loops
             Expr fromwho = IExpr(r).notype();
             func = verify_owner({fromwho});
             Arg unpacked = static_cast<FuncImpl*>(func)->get_code_collecting()->reg_constr(fromwho);
-            Assert(unpacked.tag == Arg::IREG);
+            LOOPS_ASSERT(unpacked.tag == Arg::IREG);
             idx = unpacked.idx;
         }
         else
@@ -257,7 +233,7 @@ namespace loops
     void IReg::copyidx(const IReg& from)
     {
         if(func != nullptr && func != from.func)
-            throw std::runtime_error("Registers of different functions in idx assignment.");
+            throw loops::exception("Registers of different functions in idx assignment.");
         func = from.func;
         idx = from.idx;
     }
@@ -269,7 +245,7 @@ namespace loops
             Expr from_(from.notype());
             Func* newfunc = verify_owner({from_});
             if(func != nullptr && func != newfunc)
-                throw std::runtime_error("Registers of different functions in idx assignment.");
+                throw loops::exception("Registers of different functions in idx assignment.");
             func = newfunc;
             idx = from.leaf().idx;
         }
@@ -307,7 +283,7 @@ namespace loops
                     if(child.func() == nullptr)
                         child.infer_owner(inferedfunc);
                     else if(child.func() != inferedfunc)
-                        throw std::runtime_error("Registers of different functions as arguments of one expression.");
+                        throw loops::exception("Registers of different functions as arguments of one expression.");
             }
         }
         if(inferedfunc)
@@ -454,7 +430,7 @@ namespace loops
             coll->while_(condition_);
             break;
         default:
-            Assert(false);
+            LOOPS_ASSERT(false);
         }
     }
 
@@ -752,9 +728,9 @@ namespace loops
         Expr fromwho_(fromwho);
         func = verify_owner({fromwho_});
         if(fromwho.opcode() == EXPR_LEAF && fromwho.leaf().tag == Arg::IIMMEDIATE && func == nullptr)
-            throw std::runtime_error("Direct immediate assignment must be done via VCONST_ operator, e.g.:\n    VReg<float> var = VCONST_(float, 3.14);\n");
+            throw loops::exception("Direct immediate assignment must be done via VCONST_ operator, e.g.:\n    VReg<float> var = VCONST_(float, 3.14);\n");
         Arg unpacked = static_cast<FuncImpl*>(func)->get_code_collecting()->reg_constr(fromwho_);
-        Assert(unpacked.tag == Arg::VREG && unpacked.elemtype == restype);
+        LOOPS_ASSERT(unpacked.tag == Arg::VREG && unpacked.elemtype == restype);
         idx = unpacked.idx;
     }
 
@@ -770,7 +746,7 @@ namespace loops
         Expr fromwho_(fromwho);
         Func* newfunc = verify_owner({fromwho_});
         if(func != nullptr && func != newfunc)
-            throw std::runtime_error("Registers of different functions in idx assignment.");
+            throw loops::exception(LOOPS_ERR_TOO_MUCH_ARGS);
         func = newfunc;
         idx = fromwho_.leaf().idx;
     }
@@ -779,7 +755,7 @@ namespace loops
     Syntop::Syntop(const Syntop& fwho) : opcode(fwho.opcode), args_size(fwho.args_size)
     {
         if(args_size > SYNTOP_ARGS_MAX)
-            throw std::runtime_error("Syntaxic operation: too much args!");
+            throw loops::exception(LOOPS_ERR_TOO_MUCH_ARGS);
         std::copy(fwho.begin(), fwho.end(), args);
     }
 
@@ -788,7 +764,7 @@ namespace loops
         opcode = fwho.opcode;
         args_size = fwho.args_size;
         if(args_size > SYNTOP_ARGS_MAX)
-            throw std::runtime_error("Syntaxic operation: too much args!");
+            throw loops::exception(LOOPS_ERR_TOO_MUCH_ARGS);
         std::copy(fwho.begin(), fwho.end(), args);
         return *this;
     }
@@ -796,21 +772,21 @@ namespace loops
     Syntop::Syntop(int a_opcode, const std::vector<Arg>& a_args) : opcode(a_opcode), args_size((int)a_args.size())
     {
         if(args_size > SYNTOP_ARGS_MAX)
-            throw std::runtime_error("Syntaxic operation: too much args!");
+            throw loops::exception(LOOPS_ERR_TOO_MUCH_ARGS);
         std::copy(a_args.begin(), a_args.end(), args);
     }
 
     Syntop::Syntop(int a_opcode, std::initializer_list<Arg> a_args): opcode(a_opcode), args_size((int)a_args.size())
     {
         if(args_size > SYNTOP_ARGS_MAX)
-            throw std::runtime_error("Syntaxic operation: too much args!");
+            throw loops::exception(LOOPS_ERR_TOO_MUCH_ARGS);
         std::copy(a_args.begin(), a_args.end(), args);
     }
 
     Syntop::Syntop(int a_opcode, std::initializer_list<Arg> a_prefix, std::initializer_list<Arg> a_args): opcode(a_opcode), args_size((int)(a_args.size() + a_prefix.size()))
     {
         if(args_size > SYNTOP_ARGS_MAX)
-            throw std::runtime_error("Syntaxic operation: too much args!");
+            throw loops::exception(LOOPS_ERR_TOO_MUCH_ARGS);
         std::copy(a_prefix.begin(), a_prefix.end(), args);
         std::copy(a_args.begin(), a_args.end(), args + a_prefix.size());
     }
@@ -829,7 +805,7 @@ namespace loops
     void ContextImpl::startFunc(const std::string& name, std::initializer_list<IReg*> params)
     {
         if(m_functionsStorage.find(name) != m_functionsStorage.end())
-            throw std::runtime_error("Function is already registered.");  //TODO(ch): We need good exception class.
+            throw loops::exception("Function is already registered.");  //TODO(ch): We need good exception class.
         m_currentFunc = m_functionsStorage.emplace(name, FuncImpl::makeWrapper(name, this, params)).first->second;
     }
 
@@ -844,7 +820,7 @@ namespace loops
     {
         auto found = m_functionsStorage.find(name);
         if(found == m_functionsStorage.end()) 
-            throw std::runtime_error("Cannot find function.");
+            throw loops::exception("Cannot find function.");
         return found->second;
     }
 
@@ -903,7 +879,7 @@ namespace loops
 
     Context ContextImpl::getPublicInterface()
     {
-        Assert(m_refcount>0);
+        LOOPS_ASSERT(m_refcount>0);
         //Trick to workaround abscence of makeWrapper function of Context as smartpointer.
         //ContextImpl simulates Context(by self-referencing) and creates a smartpointer copy.
         impl = this;

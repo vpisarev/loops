@@ -35,7 +35,7 @@ void* FuncImpl::ptr()
 {
     if(m_compiled == nullptr)
     {
-        Assert(m_pipeline.get());
+        LOOPS_ASSERT(m_pipeline.get());
         FuncBodyBuf body = get_hex_body();
         Backend* backend = m_context->getBackend();
         Allocator* alloc = backend->getAllocator();
@@ -62,57 +62,29 @@ void FuncImpl::printIR(std::ostream& out, int columns, const std::string& uptoPa
     {
         std::vector<std::string>  allpasses = l_pipeline.get_all_passes();
         auto found = std::find(allpasses.begin(), allpasses.end(), "CP_IR_TO_ASSEMBLY");
-        Assert(found != allpasses.end() && found != allpasses.begin());
+        LOOPS_ASSERT(found != allpasses.end() && found != allpasses.begin());
         uptoPass = *(found - 1);
     }
     l_pipeline.run_until(uptoPass);
-    program_printer* _printer;
-    Assert(create_ir_printer(columns, &_printer) == 0);
-    syntfunc2print s2p;
-    s2p.name = (char*)(l_pipeline.get_data().name.c_str());
-    int err = loops_span_construct(&(s2p.program), (Syntop*)l_pipeline.get_data().program.data(), (int)l_pipeline.get_data().program.size());
-    if(err != LOOPS_ERR_SUCCESS)
-        throw std::runtime_error(get_errstring(err));
-    err = loops_span_construct(&(s2p.params), (Arg*)l_pipeline.get_data().params.data(), (int)l_pipeline.get_data().params.size());
-    if(err != LOOPS_ERR_SUCCESS)
-        throw std::runtime_error(get_errstring(err));
-    char* printed_str;
-    err = sprint_syntfunc(_printer, &printed_str, &s2p);
-    if(err != LOOPS_ERR_SUCCESS)
-        throw std::runtime_error(get_errstring(err));
-    free_printer(_printer);
+    program_printer_ptr _printer = program_printer::create_ir_printer(columns);
+    std::string printed_str = _printer->sprint_syntfunc(l_pipeline.get_data());
     out << printed_str;
-    free(printed_str);
 }
 
 void FuncImpl::printAssembly(std::ostream& out, int columns)
 {
     Pipeline l_pipeline(*(m_context->debug_mode() ? m_debug_pipeline.get(): m_pipeline.get()));
     l_pipeline.run_until("CP_IR_TO_ASSEMBLY");
-    program_printer* _printer;
-    Assert(create_assembly_printer(columns, m_context->getBackend(), &_printer) == 0);
-    syntfunc2print s2p;
-    s2p.name = (char*)(l_pipeline.get_data().name.c_str());
-    int err = loops_span_construct(&(s2p.program), (Syntop*)l_pipeline.get_data().program.data(), (int)l_pipeline.get_data().program.size());
-    if(err != LOOPS_ERR_SUCCESS)
-        throw std::runtime_error(get_errstring(err));
-    err = loops_span_construct(&(s2p.params), (Arg*)l_pipeline.get_data().params.data(), (int)l_pipeline.get_data().params.size());
-    if(err != LOOPS_ERR_SUCCESS)
-        throw std::runtime_error(get_errstring(err));
-    char* printed_str;
-    err = sprint_syntfunc(_printer, &printed_str, &s2p);
-    if(err != LOOPS_ERR_SUCCESS)
-        throw std::runtime_error(get_errstring(err));
-    free_printer(_printer);
+    program_printer_ptr _printer = program_printer::create_assembly_printer(columns, m_context->getBackend());
+    std::string printed_str = _printer->sprint_syntfunc(l_pipeline.get_data());
     out << printed_str;
-    free(printed_str);
 }
 
 const Syntfunc& FuncImpl::get_data() const
 {
     if(m_pipeline.get())
         return m_pipeline->get_data(); 
-    AssertMsg(m_context->debug_mode(), "Function is already compiled.");
+    LOOPS_ASSERT_MSG(m_context->debug_mode(), "Function is already compiled.");
     return m_debug_pipeline->get_data();
 }
 

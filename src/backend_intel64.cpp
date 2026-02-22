@@ -6,192 +6,186 @@ See https://github.com/4ekmah/loops/LICENSE
 #include "backend_intel64.hpp"
 #if __LOOPS_ARCH == __LOOPS_INTEL64
 #include "func_impl.hpp"
-#include "collections.hpp"
 #include <algorithm>
 #include <iomanip>
-
-
-static inline loops_cstring opstrings_getter_(int opcode)
-{
-    switch (opcode)
-    {
-    case (loops::INTEL64_MOV         ) : return "mov"         ;
-    case (loops::INTEL64_MOVSX       ) : return "movsx"       ;
-    case (loops::INTEL64_MOVSXD      ) : return "movsxd"      ;
-    case (loops::INTEL64_MOVZX       ) : return "movzx"       ;
-    case (loops::INTEL64_ADC         ) : return "adc"         ;
-    case (loops::INTEL64_ADD         ) : return "add"         ;
-    case (loops::INTEL64_SUB         ) : return "sub"         ;
-    case (loops::INTEL64_IMUL        ) : return "imul"        ;
-    case (loops::INTEL64_IDIV        ) : return "idiv"        ;
-    case (loops::INTEL64_SHL         ) : return "shl"         ;
-    case (loops::INTEL64_SHR         ) : return "shr"         ;
-    case (loops::INTEL64_SAR         ) : return "sar"         ;
-    case (loops::INTEL64_AND         ) : return "and"         ;
-    case (loops::INTEL64_OR          ) : return "or"          ;
-    case (loops::INTEL64_XOR         ) : return "xor"         ;
-    case (loops::INTEL64_NOT         ) : return "not"         ;
-    case (loops::INTEL64_NEG         ) : return "neg"         ;
-    case (loops::INTEL64_CQO         ) : return "cqo"         ;
-    case (loops::INTEL64_XCHG        ) : return "xchg"        ;
-    case (loops::INTEL64_CMP         ) : return "cmp"         ;
-    case (loops::INTEL64_CMOVNE      ) : return "cmovne"      ;
-    case (loops::INTEL64_CMOVE       ) : return "cmove"       ;
-    case (loops::INTEL64_CMOVL       ) : return "cmovl"       ;
-    case (loops::INTEL64_CMOVG       ) : return "cmovg"       ;
-    case (loops::INTEL64_CMOVGE      ) : return "cmovge"      ;
-    case (loops::INTEL64_CMOVA       ) : return "cmova"       ;
-    case (loops::INTEL64_CMOVLE      ) : return "cmovle"      ;
-    case (loops::INTEL64_CMOVBE      ) : return "cmovbe"      ;
-    case (loops::INTEL64_CMOVS       ) : return "cmovs"       ;
-    case (loops::INTEL64_CMOVNS      ) : return "cmovns"      ;
-    case (loops::INTEL64_SETNE       ) : return "setne"       ;
-    case (loops::INTEL64_SETE        ) : return "sete"        ;
-    case (loops::INTEL64_SETL        ) : return "setl"        ;
-    case (loops::INTEL64_SETG        ) : return "setg"        ;
-    case (loops::INTEL64_SETGE       ) : return "setge"       ;
-    case (loops::INTEL64_SETA        ) : return "seta"        ;
-    case (loops::INTEL64_SETLE       ) : return "setle"       ;
-    case (loops::INTEL64_SETBE       ) : return "setbe"       ;
-    case (loops::INTEL64_SETS        ) : return "sets"        ;
-    case (loops::INTEL64_SETNS       ) : return "setns"       ;
-    case (loops::INTEL64_VMOVDQU     ) : return "vmovdqu"     ;
-    case (loops::INTEL64_VMOVUPS     ) : return "vmovups"     ;
-    case (loops::INTEL64_VMOVUPD     ) : return "vmovupd"     ;
-    case (loops::INTEL64_VEXTRACTI128) : return "vextracti128";
-    case (loops::INTEL64_VEXTRACTF128) : return "vextractf128";
-    case (loops::INTEL64_VINSERTI128 ) : return "vinserti128" ;
-    case (loops::INTEL64_VINSERTF128 ) : return "vinsertf128" ;
-    case (loops::INTEL64_VPERM2I128  ) : return "vperm2i128"  ;
-    case (loops::INTEL64_VPEXTRB     ) : return "vpextrb"     ;
-    case (loops::INTEL64_VPEXTRW     ) : return "vpextrw"     ;
-    case (loops::INTEL64_VPEXTRD     ) : return "vpextrd"     ;
-    case (loops::INTEL64_VPEXTRQ     ) : return "vpextrq"     ;
-    case (loops::INTEL64_VPINSRB     ) : return "vpinsrb"     ;
-    case (loops::INTEL64_VPINSRW     ) : return "vpinsrw"     ;
-    case (loops::INTEL64_VPINSRD     ) : return "vpinsrd"     ;
-    case (loops::INTEL64_VPINSRQ     ) : return "vpinsrq"     ;
-    case (loops::INTEL64_VMOVD       ) : return "vmovd"       ;
-    case (loops::INTEL64_VMOVQ       ) : return "vmovq"       ;
-    case (loops::INTEL64_VPBROADCASTB) : return "vpbroadcastb";
-    case (loops::INTEL64_VPBROADCASTW) : return "vpbroadcastw";
-    case (loops::INTEL64_VPBROADCASTD) : return "vpbroadcastd";
-    case (loops::INTEL64_VPBROADCASTQ) : return "vpbroadcastq";
-    case (loops::INTEL64_VPADDB      ) : return "vpaddb"      ;
-    case (loops::INTEL64_VPADDW      ) : return "vpaddw"      ;
-    case (loops::INTEL64_VPADDD      ) : return "vpaddd"      ;
-    case (loops::INTEL64_VPADDQ      ) : return "vpaddq"      ;
-    case (loops::INTEL64_VADDPS      ) : return "vaddps"      ;
-    case (loops::INTEL64_VADDPD      ) : return "vaddpd"      ;
-    case (loops::INTEL64_VPSUBB      ) : return "vpsubb"      ;
-    case (loops::INTEL64_VPSUBW      ) : return "vpsubw"      ;
-    case (loops::INTEL64_VPSUBD      ) : return "vpsubd"      ;
-    case (loops::INTEL64_VPSUBQ      ) : return "vpsubq"      ;
-    case (loops::INTEL64_VSUBPS      ) : return "vsubps"      ;
-    case (loops::INTEL64_VSUBPD      ) : return "vsubpd"      ;
-    case (loops::INTEL64_VPMULLW     ) : return "vpmullw"     ;
-    case (loops::INTEL64_VPMULLD     ) : return "vpmulld"     ;
-    case (loops::INTEL64_VMULPS      ) : return "vmulps"      ;
-    case (loops::INTEL64_VMULPD      ) : return "vmulpd"      ;
-    case (loops::INTEL64_VDIVPS      ) : return "vdivps"      ;
-    case (loops::INTEL64_VDIVPD      ) : return "vdivpd"      ;
-    case (loops::INTEL64_VFMADD231PS ) : return "vfmadd231ps" ;
-    case (loops::INTEL64_VFMADD231PD ) : return "vfmadd231pd" ;
-    case (loops::INTEL64_VPMINUB     ) : return "vpminub"     ;
-    case (loops::INTEL64_VPMINSB     ) : return "vpminsb"     ;
-    case (loops::INTEL64_VPMINUW     ) : return "vpminuw"     ;
-    case (loops::INTEL64_VPMINSW     ) : return "vpminsw"     ;
-    case (loops::INTEL64_VPMINUD     ) : return "vpminud"     ;
-    case (loops::INTEL64_VPMINSD     ) : return "vpminsd"     ;
-    case (loops::INTEL64_VMINPS      ) : return "vminps"      ;
-    case (loops::INTEL64_VMINPD      ) : return "vminpd"      ;
-    case (loops::INTEL64_VPMAXUB     ) : return "vpmaxub"     ;
-    case (loops::INTEL64_VPMAXSB     ) : return "vpmaxsb"     ;
-    case (loops::INTEL64_VPMAXUW     ) : return "vpmaxuw"     ;
-    case (loops::INTEL64_VPMAXSW     ) : return "vpmaxsw"     ;
-    case (loops::INTEL64_VPMAXUD     ) : return "vpmaxud"     ;
-    case (loops::INTEL64_VPMAXSD     ) : return "vpmaxsd"     ;
-    case (loops::INTEL64_VMAXPS      ) : return "vmaxps"      ;
-    case (loops::INTEL64_VMAXPD      ) : return "vmaxpd"      ;
-    case (loops::INTEL64_VPCMPEQB    ) : return "vpcmpeqb"    ;
-    case (loops::INTEL64_VPCMPEQW    ) : return "vpcmpeqw"    ;
-    case (loops::INTEL64_VPCMPEQD    ) : return "vpcmpeqd"    ;
-    case (loops::INTEL64_VPCMPEQQ    ) : return "vpcmpeqq"    ;
-    case (loops::INTEL64_VPCMPGTB    ) : return "vpcmpgtb"    ;
-    case (loops::INTEL64_VPCMPGTW    ) : return "vpcmpgtw"    ;
-    case (loops::INTEL64_VPCMPGTD    ) : return "vpcmpgtd"    ;
-    case (loops::INTEL64_VPCMPGTQ    ) : return "vpcmpgtq"    ;
-    case (loops::INTEL64_VCMPEQPS    ) : return "vcmpeqps"    ;
-    case (loops::INTEL64_VCMPNEQPS   ) : return "vcmpneqps"   ;
-    case (loops::INTEL64_VCMPLTPS    ) : return "vcmpltps"    ;
-    case (loops::INTEL64_VCMPLEPS    ) : return "vcmpleps"    ;
-    case (loops::INTEL64_VCMPEQPD    ) : return "vcmpeqpd"    ;
-    case (loops::INTEL64_VCMPNEQPD   ) : return "vcmpneqpd"   ;
-    case (loops::INTEL64_VCMPLTPD    ) : return "vcmpltpd"    ;
-    case (loops::INTEL64_VCMPLEPD    ) : return "vcmplepd"    ;
-    case (loops::INTEL64_VPBLENDVB   ) : return "vpblendvb"   ;
-    case (loops::INTEL64_VBLENDVPS   ) : return "vblendvps"   ;
-    case (loops::INTEL64_VBLENDVPD   ) : return "vblendvpd"   ;
-    case (loops::INTEL64_VPAND       ) : return "vpand"       ;
-    case (loops::INTEL64_VPOR        ) : return "vpor"        ;
-    case (loops::INTEL64_VPXOR       ) : return "vpxor"       ;
-    case (loops::INTEL64_VPSLLW      ) : return "vpsllw"      ;
-    case (loops::INTEL64_VPSLLD      ) : return "vpslld"      ;
-    case (loops::INTEL64_VPSLLQ      ) : return "vpsllq"      ;
-    case (loops::INTEL64_VPSLLVD     ) : return "vpsllvd"     ;
-    case (loops::INTEL64_VPSLLVQ     ) : return "vpsllvq"     ;
-    case (loops::INTEL64_VPSRAW      ) : return "vpsraw"      ;
-    case (loops::INTEL64_VPSRAD      ) : return "vpsrad"      ;
-    case (loops::INTEL64_VPSRAVD     ) : return "vpsravd"     ;
-    case (loops::INTEL64_VPSRLW      ) : return "vpsrlw"      ;
-    case (loops::INTEL64_VPSRLD      ) : return "vpsrld"      ;
-    case (loops::INTEL64_VPSRLQ      ) : return "vpsrlq"      ;
-    case (loops::INTEL64_VPSRLVD     ) : return "vpsrlvd"     ;
-    case (loops::INTEL64_VPSRLVQ     ) : return "vpsrlvq"     ;
-    case (loops::INTEL64_VROUNDPS    ) : return "vroundps"    ;
-    case (loops::INTEL64_VROUNDPD    ) : return "vroundpd"    ;
-    case (loops::INTEL64_VCVTPS2DQ   ) : return "vcvtps2dq"   ;
-    case (loops::INTEL64_VCVTPD2DQ   ) : return "vcvtpd2dq"   ;
-    case (loops::INTEL64_VCVTDQ2PS   ) : return "vcvtdq2ps"   ;
-    case (loops::INTEL64_VPMOVSXBW   ) : return "vpmovsxbw"   ;
-    case (loops::INTEL64_VPMOVSXWD   ) : return "vpmovsxwd"   ;
-    case (loops::INTEL64_VPMOVSXDQ   ) : return "vpmovsxdq"   ;
-    case (loops::INTEL64_VPMOVZXBW   ) : return "vpmovzxbw"   ;
-    case (loops::INTEL64_VPMOVZXWD   ) : return "vpmovzxwd"   ;
-    case (loops::INTEL64_VPMOVZXDQ   ) : return "vpmovzxdq"   ;
-    case (loops::INTEL64_VCVTPS2PD   ) : return "vcvtps2pd"   ;
-    case (loops::INTEL64_VPALIGNR    ) : return "vpalignr"    ;
-    case (loops::INTEL64_VPSHUFD     ) : return "vpshufd"     ;
-    case (loops::INTEL64_VPSADBW     ) : return "vpsadbw"     ;
-    case (loops::INTEL64_VPHADDD     ) : return "vphaddd"     ;
-    case (loops::INTEL64_VHADDPS     ) : return "vhaddps"     ;
-    case (loops::INTEL64_VADDSS      ) : return "vaddss"      ;
-    case (loops::INTEL64_VHADDPD     ) : return "vhaddpd"     ;
-    case (loops::INTEL64_VADDSD      ) : return "vaddsd"      ;
-    case (loops::INTEL64_JMP         ) : return "jmp"         ;
-    case (loops::INTEL64_JNE         ) : return "jne"         ;
-    case (loops::INTEL64_JE          ) : return "je"          ;
-    case (loops::INTEL64_JL          ) : return "jl"          ;
-    case (loops::INTEL64_JG          ) : return "jg"          ;
-    case (loops::INTEL64_JGE         ) : return "jge"         ;
-    case (loops::INTEL64_JA          ) : return "ja"          ;
-    case (loops::INTEL64_JLE         ) : return "jle"         ;
-    case (loops::INTEL64_JBE         ) : return "jbe"         ;
-    case (loops::INTEL64_CALL        ) : return "call"        ;
-    case (loops::INTEL64_RET         ) : return "ret"         ;
-    case (loops::INTEL64_LABEL       ) : return ""            ;
-    };
-    return nullptr;
-}
-
-static int opstrings_getter(int opcode, loops_cstring* found_name)
-{
-    *found_name = opstrings_getter_(opcode);
-    return ((*found_name) == nullptr) ? LOOPS_ERR_UNPRINTABLE_OPERATION : LOOPS_ERR_SUCCESS;
-}
+#include <unordered_map>
 
 namespace loops
 {
+    static inline cstring opstrings_getter(int opcode)
+    {
+        switch (opcode)
+        {
+        //  |enum_id                         |string_id|
+        case (INTEL64_MOV         ) : return "mov"         ;
+        case (INTEL64_MOVSX       ) : return "movsx"       ;
+        case (INTEL64_MOVSXD      ) : return "movsxd"      ;
+        case (INTEL64_MOVZX       ) : return "movzx"       ;
+        case (INTEL64_ADC         ) : return "adc"         ;
+        case (INTEL64_ADD         ) : return "add"         ;
+        case (INTEL64_SUB         ) : return "sub"         ;
+        case (INTEL64_IMUL        ) : return "imul"        ;
+        case (INTEL64_IDIV        ) : return "idiv"        ;
+        case (INTEL64_SHL         ) : return "shl"         ;
+        case (INTEL64_SHR         ) : return "shr"         ;
+        case (INTEL64_SAR         ) : return "sar"         ;
+        case (INTEL64_AND         ) : return "and"         ;
+        case (INTEL64_OR          ) : return "or"          ;
+        case (INTEL64_XOR         ) : return "xor"         ;
+        case (INTEL64_NOT         ) : return "not"         ;
+        case (INTEL64_NEG         ) : return "neg"         ;
+        case (INTEL64_CQO         ) : return "cqo"         ;
+        case (INTEL64_XCHG        ) : return "xchg"        ;
+        case (INTEL64_CMP         ) : return "cmp"         ;
+        case (INTEL64_CMOVNE      ) : return "cmovne"      ;
+        case (INTEL64_CMOVE       ) : return "cmove"       ;
+        case (INTEL64_CMOVL       ) : return "cmovl"       ;
+        case (INTEL64_CMOVG       ) : return "cmovg"       ;
+        case (INTEL64_CMOVGE      ) : return "cmovge"      ;
+        case (INTEL64_CMOVA       ) : return "cmova"       ;
+        case (INTEL64_CMOVLE      ) : return "cmovle"      ;
+        case (INTEL64_CMOVBE      ) : return "cmovbe"      ;
+        case (INTEL64_CMOVS       ) : return "cmovs"       ;
+        case (INTEL64_CMOVNS      ) : return "cmovns"      ;
+        case (INTEL64_SETNE       ) : return "setne"       ;
+        case (INTEL64_SETE        ) : return "sete"        ;
+        case (INTEL64_SETL        ) : return "setl"        ;
+        case (INTEL64_SETG        ) : return "setg"        ;
+        case (INTEL64_SETGE       ) : return "setge"       ;
+        case (INTEL64_SETA        ) : return "seta"        ;
+        case (INTEL64_SETLE       ) : return "setle"       ;
+        case (INTEL64_SETBE       ) : return "setbe"       ;
+        case (INTEL64_SETS        ) : return "sets"        ;
+        case (INTEL64_SETNS       ) : return "setns"       ;
+        case (INTEL64_VMOVDQU     ) : return "vmovdqu"     ;
+        case (INTEL64_VMOVUPS     ) : return "vmovups"     ;
+        case (INTEL64_VMOVUPD     ) : return "vmovupd"     ;
+        case (INTEL64_VEXTRACTI128) : return "vextracti128";
+        case (INTEL64_VEXTRACTF128) : return "vextractf128";
+        case (INTEL64_VINSERTI128 ) : return "vinserti128" ;
+        case (INTEL64_VINSERTF128 ) : return "vinsertf128" ;
+        case (INTEL64_VPERM2I128  ) : return "vperm2i128"  ;
+        case (INTEL64_VPEXTRB     ) : return "vpextrb"     ;
+        case (INTEL64_VPEXTRW     ) : return "vpextrw"     ;
+        case (INTEL64_VPEXTRD     ) : return "vpextrd"     ;
+        case (INTEL64_VPEXTRQ     ) : return "vpextrq"     ;
+        case (INTEL64_VPINSRB     ) : return "vpinsrb"     ;
+        case (INTEL64_VPINSRW     ) : return "vpinsrw"     ;
+        case (INTEL64_VPINSRD     ) : return "vpinsrd"     ;
+        case (INTEL64_VPINSRQ     ) : return "vpinsrq"     ;
+        case (INTEL64_VMOVD       ) : return "vmovd"       ;
+        case (INTEL64_VMOVQ       ) : return "vmovq"       ;
+        case (INTEL64_VPBROADCASTB) : return "vpbroadcastb";
+        case (INTEL64_VPBROADCASTW) : return "vpbroadcastw";
+        case (INTEL64_VPBROADCASTD) : return "vpbroadcastd";
+        case (INTEL64_VPBROADCASTQ) : return "vpbroadcastq";
+        case (INTEL64_VPADDB      ) : return "vpaddb"      ;
+        case (INTEL64_VPADDW      ) : return "vpaddw"      ;
+        case (INTEL64_VPADDD      ) : return "vpaddd"      ;
+        case (INTEL64_VPADDQ      ) : return "vpaddq"      ;
+        case (INTEL64_VADDPS      ) : return "vaddps"      ;
+        case (INTEL64_VADDPD      ) : return "vaddpd"      ;
+        case (INTEL64_VPSUBB      ) : return "vpsubb"      ;
+        case (INTEL64_VPSUBW      ) : return "vpsubw"      ;
+        case (INTEL64_VPSUBD      ) : return "vpsubd"      ;
+        case (INTEL64_VPSUBQ      ) : return "vpsubq"      ;
+        case (INTEL64_VSUBPS      ) : return "vsubps"      ;
+        case (INTEL64_VSUBPD      ) : return "vsubpd"      ;
+        case (INTEL64_VPMULLW     ) : return "vpmullw"     ;
+        case (INTEL64_VPMULLD     ) : return "vpmulld"     ;
+        case (INTEL64_VMULPS      ) : return "vmulps"      ;
+        case (INTEL64_VMULPD      ) : return "vmulpd"      ;
+        case (INTEL64_VDIVPS      ) : return "vdivps"      ;
+        case (INTEL64_VDIVPD      ) : return "vdivpd"      ;
+        case (INTEL64_VFMADD231PS ) : return "vfmadd231ps" ;
+        case (INTEL64_VFMADD231PD ) : return "vfmadd231pd" ;
+        case (INTEL64_VPMINUB     ) : return "vpminub"     ;
+        case (INTEL64_VPMINSB     ) : return "vpminsb"     ;
+        case (INTEL64_VPMINUW     ) : return "vpminuw"     ;
+        case (INTEL64_VPMINSW     ) : return "vpminsw"     ;
+        case (INTEL64_VPMINUD     ) : return "vpminud"     ;
+        case (INTEL64_VPMINSD     ) : return "vpminsd"     ;
+        case (INTEL64_VMINPS      ) : return "vminps"      ;
+        case (INTEL64_VMINPD      ) : return "vminpd"      ;
+        case (INTEL64_VPMAXUB     ) : return "vpmaxub"     ;
+        case (INTEL64_VPMAXSB     ) : return "vpmaxsb"     ;
+        case (INTEL64_VPMAXUW     ) : return "vpmaxuw"     ;
+        case (INTEL64_VPMAXSW     ) : return "vpmaxsw"     ;
+        case (INTEL64_VPMAXUD     ) : return "vpmaxud"     ;
+        case (INTEL64_VPMAXSD     ) : return "vpmaxsd"     ;
+        case (INTEL64_VMAXPS      ) : return "vmaxps"      ;
+        case (INTEL64_VMAXPD      ) : return "vmaxpd"      ;
+        case (INTEL64_VPCMPEQB    ) : return "vpcmpeqb"    ;
+        case (INTEL64_VPCMPEQW    ) : return "vpcmpeqw"    ;
+        case (INTEL64_VPCMPEQD    ) : return "vpcmpeqd"    ;
+        case (INTEL64_VPCMPEQQ    ) : return "vpcmpeqq"    ;
+        case (INTEL64_VPCMPGTB    ) : return "vpcmpgtb"    ;
+        case (INTEL64_VPCMPGTW    ) : return "vpcmpgtw"    ;
+        case (INTEL64_VPCMPGTD    ) : return "vpcmpgtd"    ;
+        case (INTEL64_VPCMPGTQ    ) : return "vpcmpgtq"    ;
+        case (INTEL64_VCMPEQPS    ) : return "vcmpeqps"    ;
+        case (INTEL64_VCMPNEQPS   ) : return "vcmpneqps"   ;
+        case (INTEL64_VCMPLTPS    ) : return "vcmpltps"    ;
+        case (INTEL64_VCMPLEPS    ) : return "vcmpleps"    ;
+        case (INTEL64_VCMPEQPD    ) : return "vcmpeqpd"    ;
+        case (INTEL64_VCMPNEQPD   ) : return "vcmpneqpd"   ;
+        case (INTEL64_VCMPLTPD    ) : return "vcmpltpd"    ;
+        case (INTEL64_VCMPLEPD    ) : return "vcmplepd"    ;
+        case (INTEL64_VPBLENDVB   ) : return "vpblendvb"   ;
+        case (INTEL64_VBLENDVPS   ) : return "vblendvps"   ;
+        case (INTEL64_VBLENDVPD   ) : return "vblendvpd"   ;
+        case (INTEL64_VPAND       ) : return "vpand"       ;
+        case (INTEL64_VPOR        ) : return "vpor"        ;
+        case (INTEL64_VPXOR       ) : return "vpxor"       ;
+        case (INTEL64_VPSLLW      ) : return "vpsllw"      ;
+        case (INTEL64_VPSLLD      ) : return "vpslld"      ;
+        case (INTEL64_VPSLLQ      ) : return "vpsllq"      ;
+        case (INTEL64_VPSLLVD     ) : return "vpsllvd"     ;
+        case (INTEL64_VPSLLVQ     ) : return "vpsllvq"     ;
+        case (INTEL64_VPSRAW      ) : return "vpsraw"      ;
+        case (INTEL64_VPSRAD      ) : return "vpsrad"      ;
+        case (INTEL64_VPSRAVD     ) : return "vpsravd"     ;
+        case (INTEL64_VPSRLW      ) : return "vpsrlw"      ;
+        case (INTEL64_VPSRLD      ) : return "vpsrld"      ;
+        case (INTEL64_VPSRLQ      ) : return "vpsrlq"      ;
+        case (INTEL64_VPSRLVD     ) : return "vpsrlvd"     ;
+        case (INTEL64_VPSRLVQ     ) : return "vpsrlvq"     ;
+        case (INTEL64_VROUNDPS    ) : return "vroundps"    ;
+        case (INTEL64_VROUNDPD    ) : return "vroundpd"    ;
+        case (INTEL64_VCVTPS2DQ   ) : return "vcvtps2dq"   ;
+        case (INTEL64_VCVTPD2DQ   ) : return "vcvtpd2dq"   ;
+        case (INTEL64_VCVTDQ2PS   ) : return "vcvtdq2ps"   ;
+        case (INTEL64_VPMOVSXBW   ) : return "vpmovsxbw"   ;
+        case (INTEL64_VPMOVSXWD   ) : return "vpmovsxwd"   ;
+        case (INTEL64_VPMOVSXDQ   ) : return "vpmovsxdq"   ;
+        case (INTEL64_VPMOVZXBW   ) : return "vpmovzxbw"   ;
+        case (INTEL64_VPMOVZXWD   ) : return "vpmovzxwd"   ;
+        case (INTEL64_VPMOVZXDQ   ) : return "vpmovzxdq"   ;
+        case (INTEL64_VCVTPS2PD   ) : return "vcvtps2pd"   ;
+        case (INTEL64_VPALIGNR    ) : return "vpalignr"    ;
+        case (INTEL64_VPSHUFD     ) : return "vpshufd"     ;
+        case (INTEL64_VPSADBW     ) : return "vpsadbw"     ;
+        case (INTEL64_VPHADDD     ) : return "vphaddd"     ;
+        case (INTEL64_VHADDPS     ) : return "vhaddps"     ;
+        case (INTEL64_VADDSS      ) : return "vaddss"      ;
+        case (INTEL64_VHADDPD     ) : return "vhaddpd"     ;
+        case (INTEL64_VADDSD      ) : return "vaddsd"      ;
+        case (INTEL64_JMP         ) : return "jmp"         ;
+        case (INTEL64_JNE         ) : return "jne"         ;
+        case (INTEL64_JE          ) : return "je"          ;
+        case (INTEL64_JL          ) : return "jl"          ;
+        case (INTEL64_JG          ) : return "jg"          ;
+        case (INTEL64_JGE         ) : return "jge"         ;
+        case (INTEL64_JA          ) : return "ja"          ;
+        case (INTEL64_JLE         ) : return "jle"         ;
+        case (INTEL64_JBE         ) : return "jbe"         ;
+        case (INTEL64_CALL        ) : return "call"        ;
+        case (INTEL64_RET         ) : return "ret"         ;
+        case (INTEL64_LABEL       ) : return ""            ;
+        };
+        return nullptr;
+    }
+
     enum Intel64Reg
     {
         RAX =  0,
@@ -268,13 +262,13 @@ namespace loops
 
     static inline bool bm64_exists(uint64_t field, int flag)
     {
-        Assert(flag >= 0);
+        LOOPS_ASSERT(flag >= 0);
         return (field == 0 || (bm64(flag) & field) != 0);
     }
 
     static inline bool bm64_exists(uint64_t field, const Syntop& index, int argnum)
     {
-        Assert(argnum < index.args_size);
+        LOOPS_ASSERT(argnum < index.args_size);
         return (field == 0 || (bm64(index.args[argnum].elemtype) & field) != 0);
     }
 
@@ -291,7 +285,7 @@ namespace loops
 
     static inline void synchronizeTypesBitmask(const Syntop& index, uint64_t& a, uint64_t& b, int numA, int numB)
     {
-        Assert(numA<numB);
+        LOOPS_ASSERT(numA<numB);
         static uint64_t uint_same_size[] = {0 , bm64({TYPE_U8}), bm64({TYPE_U16}), 0, bm64({TYPE_U32}), 0, 0, 0, bm64({TYPE_U64})};
         if(numA == 0 && numB == 1 && (a == bm64(TYPE_MASK_FOR_1)))
             a = uint_same_size[elem_size(index.args[1].elemtype)];
@@ -319,16 +313,16 @@ namespace loops
         const uint64_t argflags[] = {argflags0, argflags1, argflags2, argflags3};
         using namespace BinTranslationConstruction;
         scs = false;
-        Assert(pp_opcode == 0 || pp_opcode == 0x66 || pp_opcode == 0xF2 || pp_opcode == 0xF3);
-        Assert(m_opcode == 0x0F || m_opcode == 0x0F3A || m_opcode == 0x0F38);
+        LOOPS_ASSERT(pp_opcode == 0 || pp_opcode == 0x66 || pp_opcode == 0xF2 || pp_opcode == 0xF3);
+        LOOPS_ASSERT(m_opcode == 0x0F || m_opcode == 0x0F3A || m_opcode == 0x0F38);
         //Metatypes TYPE_SAME_AS_0, TYPE_SAME_AS_1, TYPE_UINT_SAMESIZE_AS_0 and TYPE_UINT_SAMESIZE_AS_1 cannot be variation, it have to be only type!
-        Assert(bm64_exclusive(supportedTypesBitmask0, TYPE_MASK_FOR_1));
-        Assert(bm64_exclusive(supportedTypesBitmask1, TYPE_SAME_AS_0));
-        Assert(bm64_exclusive(supportedTypesBitmask1, TYPE_MASK_FOR_0));
-        Assert(bm64_exclusive(supportedTypesBitmask2, TYPE_SAME_AS_0));
-        Assert(bm64_exclusive(supportedTypesBitmask2, TYPE_SAME_AS_1));
-        Assert(bm64_exclusive(supportedTypesBitmask2, TYPE_MASK_FOR_0));
-        Assert(index.args_size >= 2);
+        LOOPS_ASSERT(bm64_exclusive(supportedTypesBitmask0, TYPE_MASK_FOR_1));
+        LOOPS_ASSERT(bm64_exclusive(supportedTypesBitmask1, TYPE_SAME_AS_0));
+        LOOPS_ASSERT(bm64_exclusive(supportedTypesBitmask1, TYPE_MASK_FOR_0));
+        LOOPS_ASSERT(bm64_exclusive(supportedTypesBitmask2, TYPE_SAME_AS_0));
+        LOOPS_ASSERT(bm64_exclusive(supportedTypesBitmask2, TYPE_SAME_AS_1));
+        LOOPS_ASSERT(bm64_exclusive(supportedTypesBitmask2, TYPE_MASK_FOR_0));
+        LOOPS_ASSERT(index.args_size >= 2);
         if(supportedTypesBitmask1 == 0 && supportedTypesBitmask0 != 0)
             supportedTypesBitmask1 = supportedTypesBitmask0;
         if(supportedTypesBitmask2 == 0 && supportedTypesBitmask0 != 0)
@@ -1771,8 +1765,8 @@ namespace loops
                     return SyT(INTEL64_XOR,  { SAcop(0), SAcop(0) });
                 else if(index[0].tag == Arg::VREG && index[1].tag == Arg::VREG && index[0].elemtype == index[1].elemtype)
                 {
-                    int opcode = index[0].elemtype == TYPE_FP32 ? loops::INTEL64_VMOVUPS :
-                                 index[0].elemtype == TYPE_FP64 ? loops::INTEL64_VMOVUPD : INTEL64_VMOVDQU;
+                    int opcode = index[0].elemtype == TYPE_FP32 ? INTEL64_VMOVUPS :
+                                 index[0].elemtype == TYPE_FP64 ? INTEL64_VMOVUPD : INTEL64_VMOVDQU;
                     return SyT(opcode,  { SAcop(0), SAcop(1) });
                 }
                 else
@@ -1809,7 +1803,7 @@ namespace loops
                               index[1].value == OP_ULE ? INTEL64_CMOVBE :
                               index[1].value == OP_S   ? INTEL64_CMOVS  :
                               index[1].value == OP_NS  ? INTEL64_CMOVNS : -1;
-                Assert(tarcode != -1);
+                LOOPS_ASSERT(tarcode != -1);
                 return SyT(tarcode, { SAcop(0), SAcop(2) });
             }
             break;
@@ -1826,15 +1820,15 @@ namespace loops
                               index[1].value == OP_ULE ? INTEL64_SETBE :
                               index[1].value == OP_S   ? INTEL64_SETS  :
                               index[1].value == OP_NS  ? INTEL64_SETNS : -1;
-                Assert(tarcode != -1);
+                LOOPS_ASSERT(tarcode != -1);
                 return SyT(tarcode, { SAcopelt(0, TYPE_U8) });
             }
             break;
         case (VOP_LOAD):
             if (index.args_size >= 2 && index.args[0].tag == Arg::VREG && index.args[1].tag == Arg::IREG)
             {
-                int opcode = index[0].elemtype == TYPE_FP32 ? loops::INTEL64_VMOVUPS :
-                             index[0].elemtype == TYPE_FP64 ? loops::INTEL64_VMOVUPD : INTEL64_VMOVDQU;
+                int opcode = index[0].elemtype == TYPE_FP32 ? INTEL64_VMOVUPS :
+                             index[0].elemtype == TYPE_FP64 ? INTEL64_VMOVUPD : INTEL64_VMOVDQU;
                 if (index.args_size == 2)
                     return SyT(opcode, { SAcop(0), SAcop(1, AF_ADDRESS) });
                 else if (index.args_size == 3 && (index.args[2].tag == Arg::IREG || index.args[2].tag == Arg::IIMMEDIATE))
@@ -1844,8 +1838,8 @@ namespace loops
         case (VOP_STORE):
             if (index.args_size >= 2 && index.args[index.args_size-1].tag == Arg::VREG && index.args[0].tag == Arg::IREG)
             {
-                int opcode = index[index.args_size-1].elemtype == TYPE_FP32 ? loops::INTEL64_VMOVUPS :
-                             index[index.args_size-1].elemtype == TYPE_FP64 ? loops::INTEL64_VMOVUPD : INTEL64_VMOVDQU;
+                int opcode = index[index.args_size-1].elemtype == TYPE_FP32 ? INTEL64_VMOVUPS :
+                             index[index.args_size-1].elemtype == TYPE_FP64 ? INTEL64_VMOVUPD : INTEL64_VMOVDQU;
                 if (index.args_size == 2)
                     return SyT(opcode, { SAcop(0, AF_ADDRESS), SAcop(1) });
                 else if (index.args_size == 3 && (index.args[1].tag == Arg::IREG || index.args[1].tag == Arg::IIMMEDIATE))
@@ -1892,10 +1886,10 @@ namespace loops
             if(index.args_size == 3 && index.args[0].tag == Arg::IREG && index.args[1].tag == Arg::VREG && index.args[2].tag == Arg::IIMMEDIATE)
             {
                 int elemsize = elem_size(index.args[1].elemtype);
-                int opcode = elemsize == 1 ? loops::INTEL64_VPEXTRB :
-                             elemsize == 2 ? loops::INTEL64_VPEXTRW :
-                             elemsize == 4 ? loops::INTEL64_VPEXTRD :
-                             elemsize == 8 ? loops::INTEL64_VPEXTRQ : -1;
+                int opcode = elemsize == 1 ? INTEL64_VPEXTRB :
+                             elemsize == 2 ? INTEL64_VPEXTRW :
+                             elemsize == 4 ? INTEL64_VPEXTRD :
+                             elemsize == 8 ? INTEL64_VPEXTRQ : -1;
                 if(opcode!=-1 && index.args[2].value < backend->vlanes(index.args[1].elemtype)/2)
                     return SyT(opcode, { elemsize == 4 ? SAcopelt(0, TYPE_I32) : SAcop(0) , SAcop(1), SAcop(2) });
             }
@@ -1904,10 +1898,10 @@ namespace loops
             if(index.size() == 3 && index[0].tag == Arg::VREG && index[1].tag == Arg::IIMMEDIATE && index[2].tag == Arg::IREG)
             { 
                 int elemsize = elem_size(index.args[0].elemtype);
-                int opcode = elemsize == 1 ? loops::INTEL64_VPINSRB :
-                             elemsize == 2 ? loops::INTEL64_VPINSRW :
-                             elemsize == 4 ? loops::INTEL64_VPINSRD :
-                             elemsize == 8 ? loops::INTEL64_VPINSRQ : -1;
+                int opcode = elemsize == 1 ? INTEL64_VPINSRB :
+                             elemsize == 2 ? INTEL64_VPINSRW :
+                             elemsize == 4 ? INTEL64_VPINSRD :
+                             elemsize == 8 ? INTEL64_VPINSRQ : -1;
                 if(opcode!=-1 && index.args[1].value < backend->vlanes(index.args[0].elemtype)/2)
                     return SyT(opcode, { SAcop(0), SAcop(0), elemsize == 8 ? SAcop(2) : SAcopelt(2, TYPE_I32), SAcop(1) });
             }
@@ -2247,7 +2241,7 @@ namespace loops
                 else if(index[0].tag == Arg::VREG)
                 {
                     if(index[0].elemtype == TYPE_FP32 || index[0].elemtype == TYPE_FP64)
-                        return SyT(index[0].elemtype == TYPE_FP32 ? loops::INTEL64_VMOVUPS : loops::INTEL64_VMOVUPD, { SAcop(0), SAreg(RSP, AF_ADDRESS), SAcopsar(1, -3, AF_ADDRESS) });
+                        return SyT(index[0].elemtype == TYPE_FP32 ? INTEL64_VMOVUPS : INTEL64_VMOVUPD, { SAcop(0), SAreg(RSP, AF_ADDRESS), SAcopsar(1, -3, AF_ADDRESS) });
                     else
                         return SyT(INTEL64_VMOVDQU, { SAcopelt(0, TYPE_I64), SAreg(RSP, AF_ADDRESS), SAcopsar(1, -3, AF_ADDRESS) });
                 }
@@ -2261,7 +2255,7 @@ namespace loops
                 else if(index[1].tag == Arg::VREG)
                 {
                     if(index[1].elemtype == TYPE_FP32 || index[1].elemtype == TYPE_FP64)
-                        return SyT(index[1].elemtype == TYPE_FP32 ? loops::INTEL64_VMOVUPS : loops::INTEL64_VMOVUPD, { SAreg(RSP, AF_ADDRESS), SAcopsar(0, -3, AF_ADDRESS), SAcop(1) });
+                        return SyT(index[1].elemtype == TYPE_FP32 ? INTEL64_VMOVUPS : INTEL64_VMOVUPD, { SAreg(RSP, AF_ADDRESS), SAcopsar(0, -3, AF_ADDRESS), SAcop(1) });
                     else
                         return SyT(INTEL64_VMOVDQU, { SAreg(RSP, AF_ADDRESS), SAcopsar(0, -3, AF_ADDRESS), SAcopelt(1, TYPE_I64) });
                 }
@@ -2405,7 +2399,7 @@ namespace loops
         case(OP_SHR):
         case(OP_SAR):
         {
-            Assert(a_op.size() == 3 && a_op[0].tag == Arg::IREG);
+            LOOPS_ASSERT(a_op.size() == 3 && a_op[0].tag == Arg::IREG);
             std::set<int> res = toFilter;
             res.erase(1);
             res = (res.size() < 2) ? res : std::set<int>({ 0 });
@@ -2423,7 +2417,7 @@ namespace loops
         case(OP_NEG):
         case(OP_NOT):
         {
-            Assert(a_op.size() == 2 && a_op[0].tag == Arg::IREG && a_op[1].tag == Arg::IREG);
+            LOOPS_ASSERT(a_op.size() == 2 && a_op[0].tag == Arg::IREG && a_op[1].tag == Arg::IREG);
             if (toFilter.size() == 2 && a_op[0].idx != a_op[1].idx) //{0,1}
                 return std::set<int>({ 1 });
             else 
@@ -2445,11 +2439,11 @@ namespace loops
             break;
         }
         case(OP_IVERSON):
-            Assert(a_op.size() == 2);
+            LOOPS_ASSERT(a_op.size() == 2);
             return (toFilter.count(0) ? std::set<int>({0}) : std::set<int>({}));
             break;
         case(OP_ABS):
-            Assert(a_op.size() == 2);
+            LOOPS_ASSERT(a_op.size() == 2);
             return (toFilter.count(1) && !regOrSpiEq(a_op[0], a_op[1])) ? std::set<int>({ 1 }) : std::set<int>({});
             break;
         case(OP_CALL):
@@ -2520,7 +2514,7 @@ namespace loops
             case (OP_SHL):
             case (OP_SHR):
             case (OP_SAR):
-                Assert(a_op.size() == 3);
+                LOOPS_ASSERT(a_op.size() == 3);
                 return a_op[2].tag == Arg::IREG ? 1 : 0;
             case (OP_ABS):
             case (OP_SIGN):
@@ -2589,7 +2583,7 @@ namespace loops
             case (OP_SHR):
             case (OP_SAR):
             {
-                Assert(a_op.size() == 3 && a_op[0].tag == Arg::IREG && a_op[1].tag == Arg::IREG);
+                LOOPS_ASSERT(a_op.size() == 3 && a_op[0].tag == Arg::IREG && a_op[1].tag == Arg::IREG);
                 if (basketNum == RB_INT && (~(AF_INPUT | AF_OUTPUT) & flagmask) == 0)
                 {
                     actualRegs = (a_op[2].tag == Arg::IREG ? makeBitmask64({ 0,1,2 }) : makeBitmask64({ 0,1 }));
@@ -2601,7 +2595,7 @@ namespace loops
             }
             case (OP_SELECT):
             {
-                Assert(a_op.size() == 4 && a_op[0].tag == Arg::IREG && a_op[2].tag == Arg::IREG);
+                LOOPS_ASSERT(a_op.size() == 4 && a_op[0].tag == Arg::IREG && a_op[2].tag == Arg::IREG);
                 if (basketNum == RB_INT && (~(AF_INPUT | AF_OUTPUT) & flagmask) == 0)
                 {
                     actualRegs = (a_op[3].tag == Arg::IREG ? makeBitmask64({ 0,2,3 }) : makeBitmask64({ 0,2 }));
@@ -2616,7 +2610,7 @@ namespace loops
             case (OP_ABS):
             case (OP_SIGN):
             {
-                Assert(a_op.size() == 2 && a_op[0].tag == Arg::IREG && a_op[1].tag == Arg::IREG);
+                LOOPS_ASSERT(a_op.size() == 2 && a_op[0].tag == Arg::IREG && a_op[1].tag == Arg::IREG);
                 if (basketNum == RB_INT && (~(AF_INPUT | AF_OUTPUT) & flagmask) == 0)
                 {
                     actualRegs = makeBitmask64({ 0,1 });
@@ -2628,7 +2622,7 @@ namespace loops
             }
             case (OP_IVERSON):
             {
-                Assert(a_op.size() == 2);
+                LOOPS_ASSERT(a_op.size() == 2);
                 if (basketNum == RB_INT && (~(AF_INPUT | AF_OUTPUT) & flagmask) == 0)
                 {
                     actualRegs = makeBitmask64({ 0 });
@@ -2663,7 +2657,7 @@ namespace loops
                 break;
             case (VOP_FMA):
             {
-                Assert(a_op.size() == 4 && a_op[0].tag == Arg::VREG && a_op[1].tag == Arg::VREG && a_op[2].tag == Arg::VREG && a_op[3].tag == Arg::VREG);
+                LOOPS_ASSERT(a_op.size() == 4 && a_op[0].tag == Arg::VREG && a_op[1].tag == Arg::VREG && a_op[2].tag == Arg::VREG && a_op[3].tag == Arg::VREG);
                 if(basketNum == RB_VEC)
                 {
                     actualRegs = makeBitmask64({ 0, 1, 2, 3 });
@@ -2685,7 +2679,7 @@ namespace loops
                         allRegs = false;
                         break;
                     }
-                Assert(allRegs);
+                LOOPS_ASSERT(allRegs);
                 if (basketNum == RB_INT && (~(AF_INPUT | AF_OUTPUT) & flagmask) == 0)
                 {
                     outRegs = actualRegs = makeBitmask64({ 0 });
@@ -2743,7 +2737,7 @@ namespace loops
         xBasket[RB_VEC] = getVectorRegisterBits() / 64;
         for(const Arg& arg : a_func.params)
         {
-            Assert(arg.tag == Arg::IREG || arg.tag == Arg::VREG);
+            LOOPS_ASSERT(arg.tag == Arg::IREG || arg.tag == Arg::VREG);
             int basketNum = ( arg.tag == Arg::IREG ? RB_INT : RB_VEC );
             if (regPassed[basketNum] > 0)
             {
@@ -2779,54 +2773,40 @@ namespace loops
         return argReg(RB_INT, RSP);
     }
 
-    column_printer Intel64Backend::get_opname_printer() const
+    column_printer_ptr Intel64Backend::get_opname_printer() const
     {
-        column_printer ret = { /*func = */ &col_opname_table_printer, /*auxdata = */ (void*)&opstrings_getter, /*free_func = */ NULL };
-        return ret;
+        return std::static_pointer_cast<column_printer>(std::make_shared<col_opname_table_printer>(&opstrings_getter));
     }
 
-    typedef struct intel64_opargs_printer_aux
+    class intel64_opargs_printer : public column_printer
     {
-        LOOPS_HASHMAP(int, int) pos2opnum;
-        LOOPS_SPAN(int) positions;
-    } intel64_opargs_printer_aux;
+    public:
+        intel64_opargs_printer() : column_printer(&intel64_opargs_printer::print) {}
+        virtual ~intel64_opargs_printer() {}
+    private:
+        static void print(program_printer* printer, column_printer* colprinter, const Syntfunc& func, int row);
+        std::unordered_map<int, int> pos2opnum;
+        std::vector<int> positions;
+    };
 
-    static int intel64_opargs_printer(program_printer* printer, column_printer* colprinter, syntfunc2print* func, int row)
+    void intel64_opargs_printer::print(program_printer* printer, column_printer* colprinter, const Syntfunc& func, int row)
     {
-        int program_size = func->program->size;
-        loops::Syntop* program = func->program->data;
-        int err;
-        intel64_opargs_printer_aux* argaux = (intel64_opargs_printer_aux*)colprinter->auxdata;
-        if (argaux == NULL)
+        int program_size = (int)func.program.size();
+        const Syntop* program = func.program.data();
+        intel64_opargs_printer* opargs_printer = (intel64_opargs_printer*)colprinter;
+        if (opargs_printer->positions.empty())
         {
             int oppos = 0;
             int opnum = 0;
-            argaux = (intel64_opargs_printer_aux*)malloc(sizeof(intel64_opargs_printer_aux));
-            if (argaux == NULL)
-                LOOPS_THROW(LOOPS_ERR_OUT_OF_MEMORY);
-            memset(argaux, 0, sizeof(intel64_opargs_printer_aux));
-            err = loops_hashmap_construct(&(argaux->pos2opnum));
-            if(err != LOOPS_ERR_SUCCESS)
-            {
-                free(argaux);
-                LOOPS_THROW(err);
-            }
-            err = loops_span_construct_alloc(&(argaux->positions), program_size);
-            if(err != LOOPS_ERR_SUCCESS) 
-            {
-                loops_hashmap_destruct(argaux->pos2opnum);
-                free(argaux);
-                LOOPS_THROW(err);
-            }
+            opargs_printer->positions.resize(program_size);
             for (; opnum < program_size; opnum++)
             {
                 int opsize = (int)printer->backend->lookS2b(program[opnum]).size();
-                argaux->positions->data[opnum] = oppos;
+                opargs_printer->positions[opnum] = oppos;
                 if(program[opnum].opcode == INTEL64_LABEL)
-                    loops_hashmap_add(argaux->pos2opnum, oppos, opnum);
+                    opargs_printer->pos2opnum[oppos] = opnum;
                 oppos += opsize;
             }
-            colprinter->auxdata = argaux;
         }
 
         static const char* rnames[4][16] = { { "al", "cl", "dl", "bl", "spl", "bpl", "sil", "dil", "r8b",  "r9b", "r10b", "r11b" , "r12b" , "r13b" , "r14b" , "r15b" },
@@ -2835,7 +2815,7 @@ namespace loops
             { "rax", "rcx", "rdx", "rbx", "rsp", "rbp", "rsi", "rdi", "r8",  "r9", "r10", "r11" , "r12" , "r13" , "r14" , "r15" },
             };
 
-        Syntop* op = program + row;
+        const Syntop* op = program + row;
         
         uint64_t operand_flags[Syntop::SYNTOP_ARGS_MAX];
         printer->backend->fill_native_operand_flags(op, operand_flags);
@@ -2848,19 +2828,18 @@ namespace loops
             {
                 int targetline;
                 if (arg.tag != Arg::IIMMEDIATE)
-                    LOOPS_THROW(LOOPS_ERR_INCORRECT_ARGUMENT);
-                int offset2find = argaux->positions->data[row + 1] + (int)arg.value;
-                err = loops_hashmap_get(argaux->pos2opnum, offset2find, &targetline);
-                if(err == LOOPS_ERR_ELEMENT_NOT_FOUND)
-                    LOOPS_THROW(LOOPS_ERR_INTERNAL_INCORRECT_OFFSET);
-                else if(err != LOOPS_ERR_SUCCESS)
-                    LOOPS_THROW(err);
-                Assert(targetline >= 0);
-                Syntop* labelop = program + targetline;
-                Assert(labelop->opcode == INTEL64_LABEL);
-                Assert(labelop->opcode == INTEL64_LABEL && labelop->args_size == 1);
-                Assert(labelop->opcode == INTEL64_LABEL && labelop->args_size == 1 && labelop->args[0].tag == Arg::IIMMEDIATE);
-                LOOPS_CALL_THROW(loops_printf(printer, "__loops_label_%d", (int)(labelop->args[0].value)));
+                    throw loops::exception(LOOPS_ERR_INCORRECT_ARGUMENT);
+                int offset2find = opargs_printer->positions[row + 1] + (int)arg.value;
+                if (opargs_printer->pos2opnum.count(offset2find) == 0)
+                    throw loops::exception(LOOPS_ERR_INTERNAL_INCORRECT_OFFSET);
+                else
+                    targetline = opargs_printer->pos2opnum.at(offset2find);
+                LOOPS_ASSERT(targetline >= 0);
+                const Syntop* labelop = program + targetline;
+                LOOPS_ASSERT(labelop->opcode == INTEL64_LABEL);
+                LOOPS_ASSERT(labelop->opcode == INTEL64_LABEL && labelop->args_size == 1);
+                LOOPS_ASSERT(labelop->opcode == INTEL64_LABEL && labelop->args_size == 1 && labelop->args[0].tag == Arg::IIMMEDIATE);
+                loops_printf(printer, "__loops_label_%d", (int)(labelop->args[0].value));
                 continue;
             }
             uint64_t argflags = operand_flags[anum];
@@ -2875,7 +2854,7 @@ namespace loops
                                  (argflags & AF_ADDRESS) == AF_ADDRESS32  ? 2 : 
                                  (argflags & AF_ADDRESS) == AF_ADDRESS64  ? 3 :
                                /*(argflags & AF_ADDRESS) == AF_ADDRESSVEC ?*/ 4 /*: */;
-                LOOPS_CALL_THROW(loops_printf(printer, "%s", address_opener_brackets[opener_idx]));
+                loops_printf(printer, "%s", address_opener_brackets[opener_idx]);
             }
             switch (arg.tag)
             {
@@ -2889,47 +2868,47 @@ namespace loops
                                     (elem_size(arg.elemtype) == 2 ? 1 : 
                                     (elem_size(arg.elemtype) == 4 ? 2 : 
                                   /*(elem_size(arg.elemtype) == 8*/ 3));
-                LOOPS_CALL_THROW(loops_printf(printer, "%s", rnames[regsize_idx][arg.idx]));
+                loops_printf(printer, "%s", rnames[regsize_idx][arg.idx]);
                 break;
             }
             case Arg::VREG:
             {
                 if(argflags & AF_HALFLANES) 
-                    LOOPS_CALL_THROW(loops_printf(printer, "xmm%d", arg.idx));
+                    loops_printf(printer, "xmm%d", arg.idx);
                 else
-                    LOOPS_CALL_THROW(loops_printf(printer, "ymm%d", arg.idx));
+                    loops_printf(printer, "ymm%d", arg.idx);
                 break;
             }
             case Arg::IIMMEDIATE:
                 if(op->opcode == INTEL64_LABEL)
                 {
-                    Assert(op->args_size == 1);
-                    LOOPS_CALL_THROW(loops_printf(printer, "__loops_label_%d:", arg.value));
+                    LOOPS_ASSERT(op->args_size == 1);
+                    loops_printf(printer, "__loops_label_%d:", arg.value);
                     break;
                 }
 #if __LOOPS_OS == __LOOPS_WINDOWS
                 if (arg.value == 0)
-                    LOOPS_CALL_THROW(loops_printf(printer, "0h"));
+                    loops_printf(printer, "0h");
                 else
                 {
                     uint32_t upper32 = ((uint64_t)arg.value) >> 32;
                     uint32_t lower32 = ((uint64_t)arg.value) & 0xffffffff;
                     if (upper32 > 0)
-                        LOOPS_CALL_THROW(loops_printf(printer, "0%x%08xh", upper32, lower32));
+                        loops_printf(printer, "0%x%08xh", upper32, lower32);
                     else
-                        LOOPS_CALL_THROW(loops_printf(printer, "0%02xh", lower32));
+                        loops_printf(printer, "0%02xh", lower32);
                 }
 #elif __LOOPS_OS == __LOOPS_LINUX
                 if (arg.value == 0)
-                    LOOPS_CALL_THROW(loops_printf(printer, "0"));
+                    loops_printf(printer, "0");
                 else
                 {
                     uint32_t upper32 = ((uint64_t)arg.value) >> 32;
                     uint32_t lower32 = ((uint64_t)arg.value) & 0xffffffff;
                     if (upper32 > 0)
-                        LOOPS_CALL_THROW(loops_printf(printer, "0x0%x%08x", upper32, lower32));
+                        loops_printf(printer, "0x0%x%08x", upper32, lower32);
                     else
-                        LOOPS_CALL_THROW(loops_printf(printer, "0x0%02x", lower32));
+                        loops_printf(printer, "0x0%02x", lower32);
                 }
 #else 
 #error Unknown OS.
@@ -2942,50 +2921,36 @@ namespace loops
                     op->opcode == INTEL64_SETG  || op->opcode == INTEL64_SETL || op->opcode == INTEL64_SETS  || op->opcode == INTEL64_SETNS) 
                     opener_idx = 0;
                 if (arg.value == 0)
-                    LOOPS_CALL_THROW(loops_printf(printer, "%srsp]", address_opener_brackets[opener_idx]));
+                    loops_printf(printer, "%srsp]", address_opener_brackets[opener_idx]);
                 else
 #if __LOOPS_OS == __LOOPS_WINDOWS
-                    LOOPS_CALL_THROW(loops_printf(printer, "%srsp + 0%02xh]", address_opener_brackets[opener_idx], arg.value * 8));
+                    loops_printf(printer, "%srsp + 0%02xh]", address_opener_brackets[opener_idx], arg.value * 8);
 #elif __LOOPS_OS == __LOOPS_LINUX
-                    LOOPS_CALL_THROW(loops_printf(printer, "%srsp + 0x0%02x]", address_opener_brackets[opener_idx], arg.value * 8));
+                    loops_printf(printer, "%srsp + 0x0%02x]", address_opener_brackets[opener_idx], arg.value * 8);
 #else 
 #error Unknown OS.
 #endif
                 break;
             }
             default:
-                LOOPS_THROW(LOOPS_ERR_INCORRECT_ARGUMENT);
+                throw loops::exception(LOOPS_ERR_INCORRECT_ARGUMENT);
             };
             if(address)
             {
                 if (address_end)
-                    LOOPS_CALL_THROW(loops_printf(printer, "]"));
+                    loops_printf(printer, "]");
                 else
-                    LOOPS_CALL_THROW(loops_printf(printer, " + "));
+                    loops_printf(printer, " + ");
             }
             if (anum < aamount - 1 && !(address && !address_end))
-                LOOPS_CALL_THROW(loops_printf(printer, ", "));
+                loops_printf(printer, ", ");
         }
-        LOOPS_CALL_THROW(close_printer_cell(printer));
-        return LOOPS_ERR_SUCCESS;
-    }
-    
-    static void free_intel64_oparg_printer(column_printer* colprinter)
-    {
-        if (colprinter->auxdata != NULL)
-        {
-            intel64_opargs_printer_aux* argaux = (intel64_opargs_printer_aux*)colprinter->auxdata;
-            loops_hashmap_destruct(argaux->pos2opnum);
-            loops_span_destruct(argaux->positions);
-            free(argaux);
-            colprinter->auxdata = NULL;
-        }
+        printer->close_printer_cell();
     }
 
-    column_printer Intel64Backend::get_opargs_printer() const
+    column_printer_ptr Intel64Backend::get_opargs_printer() const
     {
-        column_printer ret = { /*func = */ &intel64_opargs_printer, /*auxdata = */ NULL, /*free_func = */ &free_intel64_oparg_printer };
-        return ret;
+        return std::make_shared<intel64_opargs_printer>();
     }
 
     typedef struct pos_size_pair
@@ -2994,87 +2959,46 @@ namespace loops
         int size;
     } pos_size_pair;
 
-    LOOPS_SPAN_DECLARE(pos_size_pair);
-    LOOPS_SPAN_DEFINE(pos_size_pair)
-
-    typedef struct intel64_hex_printer_aux
+    class intel64_hex_printer : public column_printer
     {
-        LOOPS_SPAN(pos_size_pair) pos_n_sizes;
-        LOOPS_SPAN(uint8_t) binary;
-    } intel64_hex_printer_aux;
+    public:
+        intel64_hex_printer() : column_printer(&intel64_hex_printer::print) {}
+        virtual ~intel64_hex_printer() {}
+    private:
+        static void print(program_printer* printer, column_printer* colprinter, const Syntfunc& func, int row);
+        std::vector<pos_size_pair> pos_n_sizes;
+        FuncBodyBuf binary;
+    };
 
-    static int intel64_hex_printer(program_printer* printer, column_printer* colprinter, syntfunc2print* func, int row)
+    void intel64_hex_printer::print(program_printer* printer, column_printer* colprinter, const Syntfunc& func, int row)
     {
-        int err;
-        int program_size = func->program->size;
-        loops::Syntop* program = func->program->data;
-        int params_size = func->params->size;
-        loops::Arg* params = func->params->data;
-
-        intel64_hex_printer_aux* argaux = (intel64_hex_printer_aux*)colprinter->auxdata;
-        if (argaux == NULL)
+        int program_size = (int)func.program.size();
+        const Syntop* program = func.program.data();
+        intel64_hex_printer* hex_printer = (intel64_hex_printer*)colprinter;
+        if (hex_printer->pos_n_sizes.empty())
         {
             int oppos = 0;
             int opnum = 0;
-            argaux = (intel64_hex_printer_aux*)malloc(sizeof(intel64_hex_printer_aux));
-            if (argaux == NULL)
-                LOOPS_THROW(LOOPS_ERR_OUT_OF_MEMORY);
-            memset(argaux, 0, sizeof(intel64_hex_printer_aux));
-            err = loops_span_construct_alloc(&(argaux->pos_n_sizes), program_size); 
-            if (err != LOOPS_ERR_SUCCESS)
-            {
-                free(argaux);
-                LOOPS_THROW(err);
-            }
+            hex_printer->pos_n_sizes.resize(program_size);
             for (; opnum < program_size; opnum++)
             {
                 int opsize = (int)printer->backend->lookS2b(program[opnum]).size();
-                argaux->pos_n_sizes->data[opnum] = {/*position = */oppos, /*size = */opsize};
+                hex_printer->pos_n_sizes[opnum] = {/*position = */oppos, /*size = */opsize};
                 oppos += opsize;
             }
-            {//TODO[CPP2ANSIC]: This ugly code have to disappear, when syntop, syntfunc and other stuff will be implemented, as C entities.
-                Syntfunc tmpfunc;
-                tmpfunc.program.resize(program_size);
-                memcpy((void*)tmpfunc.program.data(), (void*)program, program_size * sizeof(Syntop));
-                tmpfunc.params.resize(params_size);
-                memcpy((void*)tmpfunc.params.data(), (void*)params, params_size * sizeof(Arg));
-                Assembly2Hex a2hPass(printer->backend);
-                a2hPass.process(*((Syntfunc*)(nullptr)), tmpfunc);
-                const FuncBodyBuf buffer = a2hPass.result_buffer();
-                err = loops_span_construct_alloc(&(argaux->binary), (int)buffer->size());
-                if (err != LOOPS_ERR_SUCCESS)
-                {
-                    loops_span_destruct(argaux->pos_n_sizes);
-                    free(argaux);
-                    LOOPS_THROW(err);
-                }
-                memcpy(argaux->binary->data, buffer->data(), argaux->binary->size);
-            }
-            colprinter->auxdata = argaux;
+            Assembly2Hex a2hPass(printer->backend);
+            a2hPass.process(*((Syntfunc*)(nullptr)), func);
+            hex_printer->binary = a2hPass.result_buffer();
         }
-        unsigned char* hexfield = argaux->binary->data + argaux->pos_n_sizes->data[row].position;
-        for (int pos = 0; pos < argaux->pos_n_sizes->data[row].size; pos++)
-            LOOPS_CALL_THROW(loops_printf(printer, "%02x ", (unsigned)(*(hexfield + pos))));
-        LOOPS_CALL_THROW(close_printer_cell(printer));
-        return LOOPS_ERR_SUCCESS;
+        const unsigned char* hexfield = hex_printer->binary->data() + hex_printer->pos_n_sizes[row].position;
+        for (int pos = 0; pos < hex_printer->pos_n_sizes[row].size; pos++)
+            loops_printf(printer, "%02x ", (unsigned)(*(hexfield + pos)));
+        printer->close_printer_cell();
     }
 
-    static void free_intel64_hex_printer(column_printer* colprinter)
+    column_printer_ptr Intel64Backend::get_hex_printer() const
     {
-        if (colprinter->auxdata != NULL)
-        {
-            intel64_hex_printer_aux* argaux = (intel64_hex_printer_aux*)colprinter->auxdata;
-            loops_span_destruct(argaux->pos_n_sizes);
-            loops_span_destruct(argaux->binary);
-            free(argaux);
-            colprinter->auxdata = NULL;
-        }
-    }
-
-    column_printer Intel64Backend::get_hex_printer() const
-    {
-        column_printer ret = { /*func = */ &intel64_hex_printer, /*auxdata = */ NULL, /*free_func = */ &free_intel64_hex_printer };
-        return ret;
+        return std::make_shared<intel64_hex_printer>();
     }
 
     void Intel64BRASnippets::handle_reduce_sum32(Syntfunc& a_dest, const Arg& output, const Arg& input) const
@@ -3089,7 +3013,7 @@ namespace loops
 
     void Intel64BRASnippets::handle_mov_imm2vec(Syntfunc& a_dest, const Arg& output, int64_t input) const
     {
-        Assert(output.tag == Arg::VREG && input != 0);
+        LOOPS_ASSERT(output.tag == Arg::VREG && input != 0);
         Arg scalar = argReg(RB_INT, a_dest.provideIdx(RB_INT));
         a_dest.program.push_back(Syntop(OP_MOV, { scalar, argIImm(input) }));
         Arg onelane = output;
@@ -3135,7 +3059,7 @@ namespace loops
             {
             case OP_IVERSON:
                 //Unfortunately, Intel's setcc works only with 8-bit wide reigsters, like al or r8b, so register must be preliminarily zeroed.
-                Assert(op.size() == 2 && op[1].tag == Arg::IIMMEDIATE && (op[0].tag == Arg::IREG || op[0].tag == Arg::ISPILLED) &&
+                LOOPS_ASSERT(op.size() == 2 && op[1].tag == Arg::IIMMEDIATE && (op[0].tag == Arg::IREG || op[0].tag == Arg::ISPILLED) &&
                        a_dest.program.size() && a_dest.program.back().opcode == OP_CMP);
                 a_dest.program.insert(a_dest.program.end() - 1, Syntop(OP_MOV, { op[0], Arg(0) }));
                 a_dest.program.push_back(op);
@@ -3147,7 +3071,7 @@ namespace loops
                     a_dest.program.push_back(op);
                 break;
             case (VOP_NEG):
-                Assert(op.args_size == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && op.args[0].elemtype == op.args[1].elemtype);
+                LOOPS_ASSERT(op.args_size == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && op.args[0].elemtype == op.args[1].elemtype);
                 {
                     Arg zero = op.args[0];
                     zero.idx = a_dest.provideIdx(RB_VEC);
@@ -3156,7 +3080,7 @@ namespace loops
                 }
                 break;
             case VOP_CAST:
-                Assert(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
+                LOOPS_ASSERT(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
                 if(op.args[0].elemtype == TYPE_I64 && op.args[1].elemtype == TYPE_FP64)
                 {
                     Arg a0_i32 = op.args[0];
@@ -3168,7 +3092,7 @@ namespace loops
                     a_dest.program.push_back(op);
                 break;
             case VOP_FLOOR:
-                Assert(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
+                LOOPS_ASSERT(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
                 if(op.args[0].elemtype == TYPE_I64 && op.args[1].elemtype == TYPE_FP64)
                 {
                     Arg a0_fp64 = op.args[0];
@@ -3190,7 +3114,7 @@ namespace loops
                     a_dest.program.push_back(op);
                 break;
             case VOP_TRUNC:
-                Assert(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
+                LOOPS_ASSERT(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
                 if(op.args[0].elemtype == TYPE_I64 && op.args[1].elemtype == TYPE_FP64)
                 {
                     Arg a0_fp64 = op.args[0];
@@ -3212,7 +3136,7 @@ namespace loops
                     a_dest.program.push_back(op);
                 break;
             case VOP_NE:
-                Assert(op.size() == 3 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
+                LOOPS_ASSERT(op.size() == 3 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
                 if(op.args[1].elemtype == op.args[2].elemtype && isInteger(op.args[1].elemtype))
                 {
                     a_dest.program.push_back(Syntop(VOP_EQ, { op.args[0], op.args[1], op.args[2] }));
@@ -3236,7 +3160,7 @@ namespace loops
                 break;
             case VOP_LE:
             case VOP_GE:
-                Assert(op.size() == 3 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
+                LOOPS_ASSERT(op.size() == 3 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
                 if(op.args[1].elemtype == op.args[2].elemtype && isInteger(op.args[1].elemtype))
                 {
                     if(elem_size(op.args[1].elemtype) <= 4)
@@ -3269,7 +3193,7 @@ namespace loops
                 break;
             case VOP_GETLANE:
             {
-                Assert(op.size() == 3 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::VREG && op.args[2].tag == Arg::IIMMEDIATE && op.args[2].value < m_backend->vlanes(op.args[1].elemtype));
+                LOOPS_ASSERT(op.size() == 3 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::VREG && op.args[2].tag == Arg::IIMMEDIATE && op.args[2].value < m_backend->vlanes(op.args[1].elemtype));
                 Arg halfvec = op.args[1];
                 Arg halfidx = op.args[2];
                 if(op.args[2].value >= m_backend->vlanes(op.args[1].elemtype)/2)
@@ -3283,7 +3207,7 @@ namespace loops
             }
             case VOP_SETLANE:
             {
-                Assert(op.size() == 3 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::IIMMEDIATE && op.args[2].tag == Arg::IREG && op.args[1].value < m_backend->vlanes(op.args[0].elemtype));
+                LOOPS_ASSERT(op.size() == 3 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::IIMMEDIATE && op.args[2].tag == Arg::IREG && op.args[1].value < m_backend->vlanes(op.args[0].elemtype));
                 Arg halfvec = op.args[0];
                 Arg halfidx = op.args[1];
                 bool returnHalfvec = false;
@@ -3301,7 +3225,7 @@ namespace loops
             }
             case VOP_CAST_HIGH:
             {
-                Assert(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && elem_size(op.args[0].elemtype) == 2 * elem_size(op.args[1].elemtype));
+                LOOPS_ASSERT(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && elem_size(op.args[0].elemtype) == 2 * elem_size(op.args[1].elemtype));
                 Arg halfvec = op.args[1];
                 halfvec.idx = a_dest.provideIdx(RB_VEC);
                 a_dest.program.push_back(Syntop(isInteger(op.args[1].elemtype) ? VOP_X86_VEXTRACT128 : VOP_X86_VEXTRACT128, { halfvec, op.args[1], argIImm(1) }));
@@ -3310,7 +3234,7 @@ namespace loops
             }
             case VOP_NOT:
             {
-                Assert(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
+                LOOPS_ASSERT(op.size() == 2 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG);
                 Arg allones = op.args[1]; 
                 allones.elemtype = TYPE_U8;
                 allones.idx = a_dest.provideIdx(RB_VEC);
@@ -3325,10 +3249,10 @@ namespace loops
             }
             case VOP_EXT:
             {
-                Assert(op.args_size == 4 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && op.args[2].tag == Arg::VREG &&
+                LOOPS_ASSERT(op.args_size == 4 && op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::VREG && op.args[2].tag == Arg::VREG &&
                        op.args[3].tag == Arg::IIMMEDIATE && op.args[0].elemtype == op.args[1].elemtype && op.args[0].elemtype == op.args[2].elemtype);
                 int shift_in_bytes = elem_size(op.args[0].elemtype) * (int)op.args[3].value;
-                Assert(shift_in_bytes >= 0 && shift_in_bytes <= 32);
+                LOOPS_ASSERT(shift_in_bytes >= 0 && shift_in_bytes <= 32);
                 if(shift_in_bytes == 0)
                 {
                     a_dest.program.push_back(Syntop(OP_MOV, { op.args[0], op.args[1] }));
@@ -3482,7 +3406,7 @@ namespace loops
             switch (op.opcode)
             {
             case OP_MOV:
-                Assert(op.size() == 2); 
+                LOOPS_ASSERT(op.size() == 2); 
                 if(op.args[0].tag == Arg::VREG && op.args[1].tag == Arg::IIMMEDIATE && op.args[1].value == 0)
                 {
                     Arg nullified = op.args[0];
@@ -3502,10 +3426,10 @@ namespace loops
             case OP_MUL:
             {
                 Syntop op_ = op;
-                Assert(op_.size() == 3 && regOrSpi(op_[0]));
+                LOOPS_ASSERT(op_.size() == 3 && regOrSpi(op_[0]));
                 if (op_[1].tag == Arg::IIMMEDIATE)
                     std::swap(op_[1], op_[2]);
-                Assert(regOrSpi(op_[1]));
+                LOOPS_ASSERT(regOrSpi(op_[1]));
                 if (regOrSpi(op_[2]) && regOrSpiEq(op_[0], op_[2]) && !regOrSpiEq(op_[0], op_[1]))
                     std::swap(op_[1], op_[2]);
                 if (!regOrSpiEq(op_[0], op_[1]))
@@ -3518,7 +3442,7 @@ namespace loops
             }
             case OP_SUB:
             {
-                Assert(op.size() == 3 && regOrSpi(op[0]) && (regOrSpi(op[1])||regOrSpi(op[2])));
+                LOOPS_ASSERT(op.size() == 3 && regOrSpi(op[0]) && (regOrSpi(op[1])||regOrSpi(op[2])));
                 if (regOrSpi(op[1]) && regOrSpiEq(op[0], op[1]))
                 {
                     a_dest.program.push_back(op);
@@ -3539,7 +3463,7 @@ namespace loops
             case OP_SHR:
             case OP_SAR:
             {
-                Assert(op.size() == 3 && regOrSpi(op[0]) && regOrSpi(op[1]));
+                LOOPS_ASSERT(op.size() == 3 && regOrSpi(op[0]) && regOrSpi(op[1]));
                 if (op[2].tag == Arg::IIMMEDIATE)
                 {
                     if (!regOrSpiEq(op[0], op[1]))
@@ -3588,7 +3512,7 @@ namespace loops
             case OP_DIV:
             case OP_MOD:
             {
-                Assert(op.size() == 3 && op[0].tag == Arg::IREG && op[1].tag == Arg::IREG && regOrSpi(op[2]));
+                LOOPS_ASSERT(op.size() == 3 && op[0].tag == Arg::IREG && op[1].tag == Arg::IREG && regOrSpi(op[2]));
                 bool unspillRax = false;;
                 if (op[0].idx != RAX)
                 {
@@ -3632,7 +3556,7 @@ namespace loops
             case OP_NEG:
             {
                 Syntop op_ = op;
-                Assert(op_.size() == 2 && regOrSpi(op_[0]) && regOrSpi(op_[1]));
+                LOOPS_ASSERT(op_.size() == 2 && regOrSpi(op_[0]) && regOrSpi(op_[1]));
                 if (!regOrSpiEq(op_[0], op_[1]))
                 {
                     a_dest.program.push_back(Syntop(OP_MOV, { op_[0],op_[1] }));
@@ -3642,7 +3566,7 @@ namespace loops
                 break;
             }
             case OP_SELECT:
-                Assert(op.size() == 4 && op[0].tag == Arg::IREG && regOrSpi(op[2]) && op[3].tag == Arg::IREG);
+                LOOPS_ASSERT(op.size() == 4 && op[0].tag == Arg::IREG && regOrSpi(op[2]) && op[3].tag == Arg::IREG);
                 if (regOrSpiEq(op[2], op[3]))
                 {
                     if (!regOrSpiEq(op[0], op[2]))
@@ -3661,7 +3585,7 @@ namespace loops
             case OP_MAX:
             {
                 Syntop op_ = op;
-                Assert(op_.size() == 3 && op_[0].tag == Arg::IREG && regOrSpi(op_[1]) && regOrSpi(op_[2]));
+                LOOPS_ASSERT(op_.size() == 3 && op_[0].tag == Arg::IREG && regOrSpi(op_[1]) && regOrSpi(op_[2]));
                 if (regOrSpiEq(op_[0], op_[1]))
                     std::swap(op_[1], op_[2]);
                 if (op_[2].tag == Arg::ISPILLED)
@@ -3674,7 +3598,7 @@ namespace loops
             }
             case OP_ABS:
             {
-                Assert(op.size() == 2 && op[0].tag == Arg::IREG && regOrSpi(op[1]));
+                LOOPS_ASSERT(op.size() == 2 && op[0].tag == Arg::IREG && regOrSpi(op[1]));
                 bool augAbs = regOrSpiEq(op[0], op[1]);
                 if (regOrSpiEq(op[0], op[1]))
                     a_dest.program.push_back(Syntop(OP_SPILL, { 0, op[0] }));
@@ -3686,7 +3610,7 @@ namespace loops
             }
             case OP_SIGN:
             {
-                Assert(op.size() == 2 && op[0].tag == Arg::IREG && op[1].tag == Arg::IREG);
+                LOOPS_ASSERT(op.size() == 2 && op[0].tag == Arg::IREG && op[1].tag == Arg::IREG);
                 Arg scratch = argReg(RB_INT, op[0].idx != RCX && op[1].idx != RCX ? RCX : (op[0].idx != RDX && op[1].idx != RDX ? RDX : RAX));
                 a_dest.program.push_back(Syntop(OP_SPILL, { 0, scratch })); //TODO(ch): there we could try ask register pool about free regs instead of spilling arbitrary register.
                 if (!regOrSpiEq(op[0], op[1]))
@@ -3701,7 +3625,7 @@ namespace loops
             case VOP_FMA:
             {
                 Syntop op_= op;
-                Assert(op_.size() == 4 && op_[0].tag == Arg::VREG && op_[1].tag == Arg::VREG && op_[2].tag == Arg::VREG && op_[3].tag == Arg::VREG);
+                LOOPS_ASSERT(op_.size() == 4 && op_[0].tag == Arg::VREG && op_[1].tag == Arg::VREG && op_[2].tag == Arg::VREG && op_[3].tag == Arg::VREG);
                 if(op_[0].idx == op_[1].idx)
                 {
                     a_dest.program.push_back(op_);
@@ -3748,7 +3672,7 @@ namespace loops
                 allSavedV.insert(returnRegistersV.begin(), returnRegistersV.end());
                 allSavedV.insert(callerSavedRegistersV.begin(), callerSavedRegistersV.end());
 
-                Assert((op.opcode == OP_CALL && op.size() >= 2 && op.size() <= ((int)parameterRegisters.size() + 2)) ||
+                LOOPS_ASSERT((op.opcode == OP_CALL && op.size() >= 2 && op.size() <= ((int)parameterRegisters.size() + 2)) ||
                        (op.opcode == OP_CALL_NORET && op.size() >= 1 && op.size() <= ((int)parameterRegisters.size() + 1)));
 #if __LOOPS_OS == __LOOPS_WINDOWS
                 Arg sp = argReg(RB_INT, RSP);
@@ -3775,7 +3699,7 @@ namespace loops
                 std::set<int> brokenRegs;
                 for(int fargnum = (op.opcode == OP_CALL ? 2 : 1); fargnum < op.size(); fargnum++)
                 {
-                    Assert(op[fargnum].tag == Arg::IREG);
+                    LOOPS_ASSERT(op[fargnum].tag == Arg::IREG);
                     int regidx = parameterRegisters[fargnum - (op.opcode == OP_CALL ? 2 : 1)];
                     if(op[fargnum].idx != regidx)
                     {
@@ -3787,7 +3711,7 @@ namespace loops
                             for(auto iter = allSaved.begin(); spillPos < (int)allSaved.size(); spillPos++, iter++)
                                 if(*iter == op[fargnum].idx)
                                     break;
-                            Assert(spillPos < (int)allSaved.size());
+                            LOOPS_ASSERT(spillPos < (int)allSaved.size());
                             a_dest.program.push_back(Syntop(OP_UNSPILL, { argReg(RB_INT,  regidx), argIImm(spillPos)}));
                         }
                         brokenRegs.insert(regidx);

@@ -6,74 +6,68 @@ See https://github.com/4ekmah/loops/LICENSE
 #include "backend_riscV.hpp"
 #if __LOOPS_ARCH == __LOOPS_RISCV
 #include "func_impl.hpp"
-#include "collections.hpp"
 #include <algorithm>
 #include <iomanip>
-
-static inline loops_cstring opstrings_getter_(int opcode)
-{
-    switch (opcode)
-    {
-     /*  |enum_id                    |string_id|    */
-    case (loops::RISCV_LB   ): return "lb"   ;
-    case (loops::RISCV_LBU  ): return "lbu"  ;
-    case (loops::RISCV_LH   ): return "lh"   ;
-    case (loops::RISCV_LHU  ): return "lhu"  ;
-    case (loops::RISCV_LW   ): return "lw"   ;
-    case (loops::RISCV_LWU  ): return "lwu"  ;
-    case (loops::RISCV_LD   ): return "ld"   ;
-    case (loops::RISCV_SB   ): return "sb"   ;
-    case (loops::RISCV_SH   ): return "sh"   ;
-    case (loops::RISCV_SW   ): return "sw"   ;
-    case (loops::RISCV_SD   ): return "sd"   ;
-    case (loops::RISCV_MV   ): return "mv"   ;
-    case (loops::RISCV_LUI  ): return "lui"  ;
-    case (loops::RISCV_ADD  ): return "add"  ;
-    case (loops::RISCV_SUB  ): return "sub"  ;
-    case (loops::RISCV_ADDI ): return "addi" ;
-    case (loops::RISCV_MUL  ): return "mul"  ;
-    case (loops::RISCV_DIV  ): return "div"  ;
-    case (loops::RISCV_REM  ): return "rem"  ;
-    case (loops::RISCV_NEG  ): return "neg"  ;
-    case (loops::RISCV_SLL  ): return "sll"  ;
-    case (loops::RISCV_SLLI ): return "slli" ;
-    case (loops::RISCV_SRL  ): return "srl"  ;
-    case (loops::RISCV_SRLI ): return "srli" ;
-    case (loops::RISCV_SRA  ): return "sra"  ;
-    case (loops::RISCV_SRAI ): return "srai" ;
-    case (loops::RISCV_XOR  ): return "xor"  ;
-    case (loops::RISCV_XORI ): return "xori" ;
-    case (loops::RISCV_OR   ): return "or"   ;
-    case (loops::RISCV_ORI  ): return "ori"  ;
-    case (loops::RISCV_AND  ): return "and"  ;
-    case (loops::RISCV_ANDI ): return "andi" ;
-    case (loops::RISCV_NOT  ): return "not"  ;
-    case (loops::RISCV_SLT  ): return "slt"  ;
-    case (loops::RISCV_SLTU ): return "sltu" ;
-    case (loops::RISCV_SEQZ ): return "seqz" ;
-    case (loops::RISCV_SNEZ ): return "snez" ;
-    case (loops::RISCV_BEQ  ): return "beq"  ;
-    case (loops::RISCV_BNE  ): return "bne"  ;
-    case (loops::RISCV_BLT  ): return "blt"  ;
-    case (loops::RISCV_BGE  ): return "bge"  ;
-    case (loops::RISCV_BLTU ): return "bltu" ;
-    case (loops::RISCV_BGEU ): return "bgeu" ;
-    case (loops::RISCV_J    ): return "j"    ;
-    case (loops::RISCV_JALR ): return "jalr" ;
-    case (loops::RISCV_LABEL): return ""     ;
-    case (loops::RISCV_RET  ): return "ret"  ;
-    };
-    return nullptr;
-};
-
-static int opstrings_getter(int opcode, loops_cstring* found_name)
-{
-    *found_name = opstrings_getter_(opcode);
-    return ((*found_name) == nullptr) ? LOOPS_ERR_UNPRINTABLE_OPERATION : LOOPS_ERR_SUCCESS;
-}
+#include <unordered_map>
 
 namespace loops
 {
+    static inline cstring opstrings_getter(int opcode)
+    {
+        switch (opcode)
+        {
+        //  |enum_id               |string_id|    
+        case (RISCV_LB   ): return "lb"   ;
+        case (RISCV_LBU  ): return "lbu"  ;
+        case (RISCV_LH   ): return "lh"   ;
+        case (RISCV_LHU  ): return "lhu"  ;
+        case (RISCV_LW   ): return "lw"   ;
+        case (RISCV_LWU  ): return "lwu"  ;
+        case (RISCV_LD   ): return "ld"   ;
+        case (RISCV_SB   ): return "sb"   ;
+        case (RISCV_SH   ): return "sh"   ;
+        case (RISCV_SW   ): return "sw"   ;
+        case (RISCV_SD   ): return "sd"   ;
+        case (RISCV_MV   ): return "mv"   ;
+        case (RISCV_LUI  ): return "lui"  ;
+        case (RISCV_ADD  ): return "add"  ;
+        case (RISCV_SUB  ): return "sub"  ;
+        case (RISCV_ADDI ): return "addi" ;
+        case (RISCV_MUL  ): return "mul"  ;
+        case (RISCV_DIV  ): return "div"  ;
+        case (RISCV_REM  ): return "rem"  ;
+        case (RISCV_NEG  ): return "neg"  ;
+        case (RISCV_SLL  ): return "sll"  ;
+        case (RISCV_SLLI ): return "slli" ;
+        case (RISCV_SRL  ): return "srl"  ;
+        case (RISCV_SRLI ): return "srli" ;
+        case (RISCV_SRA  ): return "sra"  ;
+        case (RISCV_SRAI ): return "srai" ;
+        case (RISCV_XOR  ): return "xor"  ;
+        case (RISCV_XORI ): return "xori" ;
+        case (RISCV_OR   ): return "or"   ;
+        case (RISCV_ORI  ): return "ori"  ;
+        case (RISCV_AND  ): return "and"  ;
+        case (RISCV_ANDI ): return "andi" ;
+        case (RISCV_NOT  ): return "not"  ;
+        case (RISCV_SLT  ): return "slt"  ;
+        case (RISCV_SLTU ): return "sltu" ;
+        case (RISCV_SEQZ ): return "seqz" ;
+        case (RISCV_SNEZ ): return "snez" ;
+        case (RISCV_BEQ  ): return "beq"  ;
+        case (RISCV_BNE  ): return "bne"  ;
+        case (RISCV_BLT  ): return "blt"  ;
+        case (RISCV_BGE  ): return "bge"  ;
+        case (RISCV_BLTU ): return "bltu" ;
+        case (RISCV_BGEU ): return "bgeu" ;
+        case (RISCV_J    ): return "j"    ;
+        case (RISCV_JALR ): return "jalr" ;
+        case (RISCV_LABEL): return ""     ;
+        case (RISCV_RET  ): return "ret"  ;
+        };
+        return nullptr;
+    };
+
     enum RiscVReg
     {
         ZERO =  0,
@@ -114,11 +108,11 @@ namespace loops
 
     static inline void check_fixed_reg(uint64_t fixedflags, int argnum, int* effargidxs, int argsamount, int& effargnum, uint64_t val)
     {
-        Assert(argnum >= 0 && argnum <= 2);
+        LOOPS_ASSERT(argnum >= 0 && argnum <= 2);
         int checkflag = argnum == 0 ? ARG0_FIXED : (argnum == 1 ? ARG1_FIXED : ARG2_FIXED);
         if(fixedflags & checkflag)
         {
-            Assert((val >= ZERO && val <= T6));
+            LOOPS_ASSERT((val >= ZERO && val <= T6));
             effargidxs[argnum] = -1;
             for(int anum = argnum + 1; anum < argsamount; anum++) 
                 effargidxs[anum]--;
@@ -128,11 +122,11 @@ namespace loops
 
     static inline void check_fixed_imm(uint64_t fixedflags, int argnum, int* effargidxs, int argsamount, int& effargnum, uint64_t val, int field_size, bool is_signed)
     {
-        Assert(argnum >= 0 && argnum <= 2);
+        LOOPS_ASSERT(argnum >= 0 && argnum <= 2);
         int checkflag = argnum == 0 ? ARG0_FIXED : (argnum == 1 ? ARG1_FIXED : ARG2_FIXED);
         if(fixedflags & checkflag)
         {
-            Assert((is_signed && signed_fits(val, field_size)) || (!is_signed && (val & ~((uint64_t(1) << field_size)-1)) == 0));
+            LOOPS_ASSERT((is_signed && signed_fits(val, field_size)) || (!is_signed && (val & ~((uint64_t(1) << field_size)-1)) == 0));
             effargidxs[argnum] = -1;
             for(int anum = argnum + 1; anum < argsamount; anum++) 
                 effargidxs[anum]--;
@@ -156,7 +150,7 @@ namespace loops
     static inline BinTranslation btype(const Syntop& index, bool& scs, uint64_t funct3, uint64_t opcode, uint64_t flags0, uint64_t flags1, uint64_t flags2, uint64_t fixed, uint64_t fixed0, uint64_t fixed1, uint64_t fixed2)
     {
         using namespace BinTranslationConstruction;
-        Assert(((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
+        LOOPS_ASSERT(((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
         scs = true;
         int effargidxs[3] = {0,1,2};
         int effargnum = 3;
@@ -203,7 +197,7 @@ namespace loops
     static inline BinTranslation jtype(const Syntop& index, bool& scs, uint64_t opcode, uint64_t flags0, uint64_t flags1, uint64_t fixed, uint64_t fixed0, uint64_t fixed1)
     {
         using namespace BinTranslationConstruction;
-        Assert((opcode & ~(uint64_t(0b1111111))) == 0);
+        LOOPS_ASSERT((opcode & ~(uint64_t(0b1111111))) == 0);
         scs = true;
         int effargidxs[2] = {0,1};
         int effargnum = 2;
@@ -244,7 +238,7 @@ namespace loops
     static inline BinTranslation utype(const Syntop& index, bool& scs, uint64_t opcode, uint64_t flags0, uint64_t flags1, uint64_t fixed, uint64_t fixed0, uint64_t fixed1)
     {
         using namespace BinTranslationConstruction;
-        Assert((opcode & ~(uint64_t(0b1111111))) == 0);
+        LOOPS_ASSERT((opcode & ~(uint64_t(0b1111111))) == 0);
         scs = true;
         int effargidxs[2] = {0,1};
         int effargnum = 2;
@@ -280,7 +274,7 @@ namespace loops
     static inline BinTranslation rtype(const Syntop& index, bool& scs, uint64_t funct7, uint64_t funct3, uint64_t opcode, uint64_t flags0, uint64_t flags1, uint64_t flags2, uint64_t fixed, uint64_t fixed0, uint64_t fixed1, uint64_t fixed2)
     {
         using namespace BinTranslationConstruction;
-        Assert(((funct7 & ~(uint64_t(0b1111111))) == 0) && ((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
+        LOOPS_ASSERT(((funct7 & ~(uint64_t(0b1111111))) == 0) && ((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
         scs = true;
         int effargidxs[3] = {0,1,2};
         int effargnum = 3;
@@ -310,7 +304,7 @@ namespace loops
     static inline BinTranslation itype(const Syntop& index, bool& scs, uint64_t funct3, uint64_t opcode, uint64_t flags0, uint64_t flags1, uint64_t flags2, uint64_t fixed, uint64_t fixed0, uint64_t fixed1, uint64_t fixed2)
     {
         using namespace BinTranslationConstruction;
-        Assert(((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
+        LOOPS_ASSERT(((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
         scs = true;
         int effargidxs[3] = {0,1,2};
         int effargnum = 3;
@@ -347,7 +341,7 @@ namespace loops
     static inline BinTranslation istype(const Syntop& index, bool& scs, uint64_t funct6, uint64_t funct3, uint64_t opcode, uint64_t flags0, uint64_t flags1, uint64_t flags2, uint64_t fixed, uint64_t fixed0, uint64_t fixed1, uint64_t fixed2)
     {
         using namespace BinTranslationConstruction;
-        Assert(((funct6 & ~(uint64_t(0b111111))) == 0) && ((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
+        LOOPS_ASSERT(((funct6 & ~(uint64_t(0b111111))) == 0) && ((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
         scs = true;
         int effargidxs[3] = {0,1,2};
         int effargnum = 3;
@@ -383,7 +377,7 @@ namespace loops
     static inline BinTranslation stype(const Syntop& index, bool& scs, uint64_t funct3, uint64_t opcode, uint64_t flags0, uint64_t flags1, uint64_t flags2, uint64_t fixed, uint64_t fixed0, uint64_t fixed1, uint64_t fixed2)
     {
         using namespace BinTranslationConstruction;
-        Assert(((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
+        LOOPS_ASSERT(((funct3 & ~(uint64_t(0b111))) == 0) && ((opcode & ~(uint64_t(0b1111111))) == 0));
         scs = true;
         int effargidxs[3] = {0,1,2};
         int effargnum = 3;
@@ -815,7 +809,7 @@ namespace loops
         switch (a_op.opcode)
         {
             case (OP_JCC):
-                Assert(a_op.size() == 4 && a_op[0].tag == Arg::IIMMEDIATE && a_op[1].tag == Arg::IREG && a_op[2].tag == Arg::IREG && a_op[3].tag == Arg::IIMMEDIATE);
+                LOOPS_ASSERT(a_op.size() == 4 && a_op[0].tag == Arg::IIMMEDIATE && a_op[1].tag == Arg::IREG && a_op[2].tag == Arg::IREG && a_op[3].tag == Arg::IIMMEDIATE);
                 if (basketNum == RB_INT && (~(AF_INPUT | AF_OUTPUT) & flagmask) == 0)
                 {
                     if (AF_INPUT & flagmask)
@@ -827,7 +821,7 @@ namespace loops
                 break;
             case (OP_IVERSON):
             {
-                Assert(a_op.size() == 4);
+                LOOPS_ASSERT(a_op.size() == 4);
                 if (basketNum == RB_INT && (~(AF_INPUT | AF_OUTPUT) & flagmask) == 0)
                 {
                     if (AF_OUTPUT & flagmask && ((AF_INPUT & flagmask) == 0))
@@ -849,7 +843,7 @@ namespace loops
                         allRegs = false;
                         break;
                     }
-                Assert(allRegs);
+                LOOPS_ASSERT(allRegs);
                 if(basketNum == RB_VEC)
                     return std::set<int>({});
                 if (basketNum == RB_INT && (~(AF_INPUT | AF_OUTPUT) & flagmask) == 0)
@@ -886,7 +880,7 @@ namespace loops
         xBasket[RB_VEC] = getVectorRegisterBits() / 64;
         for(const Arg& arg : a_func.params)
         {
-            Assert(arg.tag == Arg::IREG || arg.tag == Arg::VREG);
+            LOOPS_ASSERT(arg.tag == Arg::IREG || arg.tag == Arg::VREG);
             int basketNum = ( arg.tag == Arg::IREG ? RB_INT : RB_VEC );
             if (regPassed[basketNum] > 0)
             {
@@ -926,58 +920,44 @@ namespace loops
         return argReg(RB_INT, SP);
     }
 
-    column_printer RiscVBackend::get_opname_printer() const
+    column_printer_ptr RiscVBackend::get_opname_printer() const
     {
-        column_printer ret = { /*func = */ &col_opname_table_printer, /*auxdata = */ (void*)&opstrings_getter, /*free_func = */ NULL };
-        return ret;
+        return std::static_pointer_cast<column_printer>(std::make_shared<col_opname_table_printer>(&opstrings_getter));
     }
 
-    typedef struct riscV_opargs_printer_aux
+    class riscV_opargs_printer : public column_printer
     {
-        LOOPS_HASHMAP(int, int) pos2opnum;
-        LOOPS_SPAN(int) positions;
-    } riscV_opargs_printer_aux;
+    public:
+        riscV_opargs_printer() : column_printer(&riscV_opargs_printer::print) {}
+        virtual ~riscV_opargs_printer() {}
+    private:
+        static void print(program_printer* printer, column_printer* colprinter, const Syntfunc& func, int row);
+        std::unordered_map<int, int> pos2opnum;
+        std::vector<int> positions;
+    };
 
-    static int riscV_opargs_printer(program_printer* printer, column_printer* colprinter, syntfunc2print* func, int row)
+    void riscV_opargs_printer::print(program_printer* printer, column_printer* colprinter, const Syntfunc& func, int row)
     {
-        int program_size = func->program->size;
-        loops::Syntop* program = func->program->data;
-        int err;
-        riscV_opargs_printer_aux* argaux = (riscV_opargs_printer_aux*)colprinter->auxdata;
-        if (argaux == NULL)
+        int program_size = (int)func.program.size();
+        const Syntop* program = func.program.data();
+        riscV_opargs_printer* opargs_printer = (riscV_opargs_printer*)colprinter;
+        if (opargs_printer->positions.empty())
         {
             int oppos = 0;
             int opnum = 0;
-            argaux = (riscV_opargs_printer_aux*)malloc(sizeof(riscV_opargs_printer_aux));
-            if (argaux == NULL)
-                LOOPS_THROW(LOOPS_ERR_OUT_OF_MEMORY);
-            memset(argaux, 0, sizeof(riscV_opargs_printer_aux));
-            err = loops_hashmap_construct(&(argaux->pos2opnum));
-            if(err != LOOPS_ERR_SUCCESS)
-            {
-                free(argaux);
-                LOOPS_THROW(err);
-            }
-            err = loops_span_construct_alloc(&(argaux->positions), program_size);
-            if(err != LOOPS_ERR_SUCCESS) 
-            {
-                loops_hashmap_destruct(argaux->pos2opnum);
-                free(argaux);
-                LOOPS_THROW(err);
-            }
+            opargs_printer->positions.resize(program_size);
             for (; opnum < program_size; opnum++)
             {
                 int opcode = program[opnum].opcode;
                 int opsize = (opcode == RISCV_LABEL ? 0 : 4);
-                argaux->positions->data[opnum] = oppos;
+                opargs_printer->positions[opnum] = oppos;
                 if(opcode == RISCV_LABEL)
-                    loops_hashmap_add(argaux->pos2opnum, oppos, opnum);
+                    opargs_printer->pos2opnum[oppos] = opnum;
                 oppos += opsize;
             }
-            colprinter->auxdata = argaux;
         }
         
-        Syntop* op = program + row;
+        const Syntop* op = program + row;
         uint64_t operand_flags[Syntop::SYNTOP_ARGS_MAX];
         printer->backend->fill_native_operand_flags(op, operand_flags);
         int aamount = op->args_size;
@@ -990,19 +970,18 @@ namespace loops
             {
                 int targetline;
                 if (arg.tag != Arg::IIMMEDIATE)
-                    LOOPS_THROW(LOOPS_ERR_INCORRECT_ARGUMENT);
-                int offset2find = argaux->positions->data[row + 1] + (int)arg.value - 4;
-                err = loops_hashmap_get(argaux->pos2opnum, offset2find, &targetline);
-                if(err == LOOPS_ERR_ELEMENT_NOT_FOUND)
-                    LOOPS_THROW(LOOPS_ERR_INTERNAL_INCORRECT_OFFSET);
-                else if(err != LOOPS_ERR_SUCCESS)
-                    LOOPS_THROW(err);
-                Assert(targetline >= 0);
-                Syntop* labelop = program + targetline;
-                Assert(labelop->opcode == RISCV_LABEL);
-                Assert(labelop->opcode == RISCV_LABEL && labelop->args_size == 1);
-                Assert(labelop->opcode == RISCV_LABEL && labelop->args_size == 1 && labelop->args[0].tag == Arg::IIMMEDIATE);
-                LOOPS_CALL_THROW(loops_printf(printer, "__loops_label_%d", (int)(labelop->args[0].value)));
+                    throw loops::exception(LOOPS_ERR_INCORRECT_ARGUMENT);
+                int offset2find = opargs_printer->positions[row + 1] + (int)arg.value - 4;
+                if (opargs_printer->pos2opnum.count(offset2find) == 0)
+                    throw loops::exception(LOOPS_ERR_INTERNAL_INCORRECT_OFFSET);
+                else
+                    targetline = opargs_printer->pos2opnum.at(offset2find);
+                LOOPS_ASSERT(targetline >= 0);
+                const Syntop* labelop = program + targetline;
+                LOOPS_ASSERT(labelop->opcode == RISCV_LABEL);
+                LOOPS_ASSERT(labelop->opcode == RISCV_LABEL && labelop->args_size == 1);
+                LOOPS_ASSERT(labelop->opcode == RISCV_LABEL && labelop->args_size == 1 && labelop->args[0].tag == Arg::IIMMEDIATE);
+                loops_printf(printer, "__loops_label_%d", (int)(labelop->args[0].value));
                 continue;
             }
             uint64_t argflags = operand_flags[anum];
@@ -1013,22 +992,22 @@ namespace loops
                 case Arg::IREG:
                 {
                     if(address)
-                        LOOPS_CALL_THROW(loops_printf(printer, "("));
+                        loops_printf(printer, "(");
                     static const char* rnames[32] = { "zero", "ra", "sp", "gp", "tp", "lr", "t1", "t2", "fp", "s1", "a0", "a1", "a2", "a3", "a4", "a5", "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7", "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6" };
-                    LOOPS_CALL_THROW(loops_printf(printer, "%s", rnames[arg.idx]));
+                    loops_printf(printer, "%s", rnames[arg.idx]);
                     if(address)
-                        LOOPS_CALL_THROW(loops_printf(printer, ")"));
+                        loops_printf(printer, ")");
                     break;
                 }
                 case Arg::IIMMEDIATE:
                     if(op->opcode == RISCV_LABEL)
                     {
-                        LOOPS_CALL_THROW(loops_printf(printer, "__loops_label_%d:", arg.value));
+                        loops_printf(printer, "__loops_label_%d:", arg.value);
                     }
                     else
                     {
                         if(arg.value == 0)
-                            LOOPS_CALL_THROW(loops_printf(printer, "0"));
+                            loops_printf(printer, "0");
                         else
                         {
                             bool negative = (!(argflags & AF_UNSIGNED) && arg.value < 0);
@@ -1047,124 +1026,71 @@ namespace loops
                                 lower32 = ((uint64_t)arg.value) & 0xffffffff;
                             }
                             if (upper32 > 0)
-                                LOOPS_CALL_THROW(loops_printf(printer, "%s0x%x%08x", (negative ? "-": ""), upper32, lower32));
+                                loops_printf(printer, "%s0x%x%08x", (negative ? "-": ""), upper32, lower32);
                             else
-                                LOOPS_CALL_THROW(loops_printf(printer, "%s0x%02x", (negative ? "-": ""), lower32));
+                                loops_printf(printer, "%s0x%02x", (negative ? "-": ""), lower32);
                         }
                         if(address)
                             inhibit_comma = true;
                     }
                     break;
                 default:
-                    LOOPS_THROW(LOOPS_ERR_UNKNOWN_ARGUMENT_TYPE);
+                    throw loops::exception(LOOPS_ERR_UNKNOWN_ARGUMENT_TYPE);
             };
             if (anum < aamount - 1 && !inhibit_comma)
-                LOOPS_CALL_THROW(loops_printf(printer, ", "));
+                loops_printf(printer, ", ");
         }
-        LOOPS_CALL_THROW(close_printer_cell(printer));
-        return LOOPS_ERR_SUCCESS;
+        printer->close_printer_cell();
     }
 
-    static void free_riscv_opargs_printer(column_printer* colprinter)
+    column_printer_ptr RiscVBackend::get_opargs_printer() const
     {
-        if (colprinter->auxdata != NULL)
-        {
-            riscV_opargs_printer_aux* argaux = (riscV_opargs_printer_aux*)colprinter->auxdata;
-            loops_hashmap_destruct(argaux->pos2opnum);
-            loops_span_destruct(argaux->positions);
-            free(argaux);
-            colprinter->auxdata = NULL;
-        }
+        return std::make_shared<riscV_opargs_printer>();
     }
 
-    column_printer RiscVBackend::get_opargs_printer() const
+    class riscV_hex_printer : public column_printer
     {
-        column_printer ret = { /*func = */ &riscV_opargs_printer, /*auxdata = */ NULL, /*free_func = */ &free_riscv_opargs_printer };
-        return ret;
-    }
+    public:
+        riscV_hex_printer() : column_printer(&riscV_hex_printer::print) {}
+        virtual ~riscV_hex_printer() {}
+    private:
+        static void print(program_printer* printer, column_printer* colprinter, const Syntfunc& func, int row);
+        std::vector<int> positions;
+        FuncBodyBuf binary;
+    };
 
-    typedef struct riscV_hex_printer_aux
+    void riscV_hex_printer::print(program_printer* printer, column_printer* colprinter, const Syntfunc& func, int row)
     {
-        LOOPS_SPAN(int) positions;
-        LOOPS_SPAN(uint8_t) binary;
-    } riscV_hex_printer_aux;
-
-    static int riscV_hex_printer(program_printer* printer, column_printer* colprinter, syntfunc2print* func, int row)
-    {
-        int err;
-        int program_size = func->program->size;
-        loops::Syntop* program = func->program->data;
-        int params_size = func->params->size;
-        loops::Arg* params = func->params->data;
-
-        riscV_hex_printer_aux* argaux = (riscV_hex_printer_aux*)colprinter->auxdata;
-        if (argaux == NULL)
+        int program_size = (int)func.program.size();
+        const Syntop* program = func.program.data();
+        riscV_hex_printer* hex_printer = (riscV_hex_printer*)colprinter;
+        if (hex_printer->positions.empty())
         {
             int oppos = 0;
             int opnum = 0;
-            argaux = (riscV_hex_printer_aux*)malloc(sizeof(riscV_hex_printer_aux));
-            if (argaux == NULL)
-                LOOPS_THROW(LOOPS_ERR_OUT_OF_MEMORY);
-            memset(argaux, 0, sizeof(riscV_hex_printer_aux));
-            err = loops_span_construct_alloc(&(argaux->positions), program_size);
-            if (err != LOOPS_ERR_SUCCESS)
-            {
-                free(argaux);
-                LOOPS_THROW(err);
-            }
+            hex_printer->positions.resize(program_size);
             for (; opnum < program_size; opnum++)
             {
                 int opsize = (program[opnum].opcode == RISCV_LABEL ? 0 : 4);
-                argaux->positions->data[opnum] = oppos;
+                hex_printer->positions[opnum] = oppos;
                 oppos += opsize;
             }
-            {//TODO[CPP2ANSIC]: This ugly code have to disappear, when syntop, syntfunc and other stuff will be implemented, as C entities.
-                Syntfunc tmpfunc;
-                tmpfunc.program.resize(program_size);
-                memcpy((void*)tmpfunc.program.data(), (void*)program, program_size * sizeof(Syntop));
-                tmpfunc.params.resize(params_size);
-                memcpy((void*)tmpfunc.params.data(), (void*)params, params_size * sizeof(Arg));
-                Assembly2Hex a2hPass(printer->backend);
-                Syntfunc dummy;
-                a2hPass.process(dummy, tmpfunc);
-                const FuncBodyBuf buffer = a2hPass.result_buffer();
-                err = loops_span_construct_alloc(&(argaux->binary), (int)buffer->size());
-                if (err != LOOPS_ERR_SUCCESS)
-                {
-                    loops_span_destruct(argaux->positions);
-                    free(argaux);
-                    LOOPS_THROW(err);
-                }
-                memcpy(argaux->binary->data, buffer->data(), argaux->binary->size);
-            }
-            colprinter->auxdata = argaux;
+            Assembly2Hex a2hPass(printer->backend);
+            a2hPass.process(*((Syntfunc*)(nullptr)), func);
+            hex_printer->binary = a2hPass.result_buffer();
         }
         if(program[row].opcode != RISCV_LABEL)
         {
-            unsigned char* hexfield = argaux->binary->data + argaux->positions->data[row];
+            unsigned char* hexfield = hex_printer->binary->data() + hex_printer->positions[row];
             for(size_t pos = 0; pos < 4; pos++) //TODO(ch): Print variants (direct or reverse order).
-                LOOPS_CALL_THROW(loops_printf(printer, "%02x ", (unsigned)(*(hexfield + pos))));
+                loops_printf(printer, "%02x ", (unsigned)(*(hexfield + pos)));
         }
-        LOOPS_CALL_THROW(close_printer_cell(printer));
-        return LOOPS_ERR_SUCCESS;
+        printer->close_printer_cell();
     }
 
-    static void free_riscV_hex_printer(column_printer* colprinter)
+    column_printer_ptr RiscVBackend::get_hex_printer() const
     {
-        if (colprinter->auxdata != NULL)
-        {
-            riscV_hex_printer_aux* argaux = (riscV_hex_printer_aux*)colprinter->auxdata;
-            loops_span_destruct(argaux->positions);
-            loops_span_destruct(argaux->binary);
-            free(argaux);
-            colprinter->auxdata = NULL;
-        }
-    }
-
-    column_printer RiscVBackend::get_hex_printer() const
-    {
-        column_printer ret = { /*func = */ &riscV_hex_printer, /*auxdata = */ NULL, /*free_func = */ &free_riscV_hex_printer };
-        return ret;
+        return std::make_shared<riscV_hex_printer>();
     }
 
     void RiscVBRASnippets1::process(Syntfunc& a_dest, const Syntfunc& a_source)
@@ -1181,7 +1107,7 @@ namespace loops
             {
             case OP_SELECT:
             {
-                Assert(op.args_size == 4 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IIMMEDIATE && op.args[2].tag == Arg::IREG && op.args[3].tag == Arg::IREG);
+                LOOPS_ASSERT(op.args_size == 4 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IIMMEDIATE && op.args[2].tag == Arg::IREG && op.args[3].tag == Arg::IREG);
                 Arg zero_or_one = op.args[0]; zero_or_one.idx = a_dest.provideIdx(RB_INT);
                 a_dest.program.push_back(Syntop(OP_IVERSON,  { zero_or_one, op.args[1] }));
                 Arg diap = op.args[0]; diap.idx = a_dest.provideIdx(RB_INT);
@@ -1193,7 +1119,7 @@ namespace loops
             }
             case OP_MIN:
             {
-                Assert(op.args_size == 3 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IREG && op.args[2].tag == Arg::IREG);
+                LOOPS_ASSERT(op.args_size == 3 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IREG && op.args[2].tag == Arg::IREG);
                 a_dest.program.push_back(Syntop(OP_CMP,  { op.args[1], op.args[2] }));
                 Arg zero_or_one = op.args[0]; zero_or_one.idx = a_dest.provideIdx(RB_INT);
                 a_dest.program.push_back(Syntop(OP_IVERSON,  { zero_or_one, argIImm(OP_LT) }));
@@ -1206,7 +1132,7 @@ namespace loops
             }
             case OP_MAX:
             {
-                Assert(op.args_size == 3 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IREG && op.args[2].tag == Arg::IREG);
+                LOOPS_ASSERT(op.args_size == 3 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IREG && op.args[2].tag == Arg::IREG);
                 a_dest.program.push_back(Syntop(OP_CMP,  { op.args[1], op.args[2] }));
                 Arg zero_or_one = op.args[0]; zero_or_one.idx = a_dest.provideIdx(RB_INT);
                 a_dest.program.push_back(Syntop(OP_IVERSON,  { zero_or_one, argIImm(OP_LT) }));
@@ -1219,7 +1145,7 @@ namespace loops
             }
             case OP_ABS:
             {
-                Assert(op.args_size == 2 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IREG);
+                LOOPS_ASSERT(op.args_size == 2 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IREG);
                 a_dest.program.push_back(Syntop(OP_CMP,  { argIImm(0), op.args[1] }));
                 Arg zero_or_one = op.args[0]; zero_or_one.idx = a_dest.provideIdx(RB_INT);
                 a_dest.program.push_back(Syntop(OP_IVERSON,  { zero_or_one, argIImm(OP_LT) }));
@@ -1232,7 +1158,7 @@ namespace loops
             }
             case OP_SIGN:            
             {
-                Assert(op.args_size == 2 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IREG);
+                LOOPS_ASSERT(op.args_size == 2 && op.args[0].tag == Arg::IREG && op.args[1].tag == Arg::IREG);
                 Arg negative = op.args[0]; negative.idx = a_dest.provideIdx(RB_INT);
                 a_dest.program.push_back(Syntop(OP_CMP,  { op.args[1], argIImm(0) }));
                 a_dest.program.push_back(Syntop(OP_IVERSON,  { negative, argIImm(OP_LT) }));
@@ -1282,7 +1208,7 @@ namespace loops
                     a_dest.program.push_back(op);
                 break;
             case OP_CMP:
-                Assert(opnum + 1 < (int)a_source.program.size());
+                LOOPS_ASSERT(opnum + 1 < (int)a_source.program.size());
                 switch(a_source.program[opnum + 1].opcode)
                 {
                     case OP_JCC:
@@ -1294,7 +1220,7 @@ namespace loops
                     case OP_IVERSON:
                     {
                         const Syntop& ivop = a_source.program[opnum + 1];
-                        Assert(ivop.args_size == 2 && ivop.args[0].tag == Arg::IREG && ivop.args[1].tag == Arg::IIMMEDIATE);
+                        LOOPS_ASSERT(ivop.args_size == 2 && ivop.args[0].tag == Arg::IREG && ivop.args[1].tag == Arg::IIMMEDIATE);
                         switch(ivop.args[1].value)
                         {
                             case OP_LT:
@@ -1317,12 +1243,12 @@ namespace loops
                                 a_dest.program.push_back(Syntop(OP_IVERSON, { ivop.args[0], ivop.args[1], ivop.args[0], argIImm(0)}));
                                 break;
                             default:
-                                throw std::runtime_error("Unsupported condition type.");
+                                throw loops::exception("Unsupported condition type.");
                         }
                         break;
                     }
                     default:
-                        throw std::runtime_error("Unknown CMP postoperation.");
+                        throw loops::exception("Unknown CMP postoperation.");
                 }
                 break;
             case OP_JCC: case OP_IVERSON: break; //it have to be handled in cmp option.
@@ -1369,7 +1295,7 @@ namespace loops
 
     void RiscVBRASnippets2::mov32(Syntfunc& a_dest, Arg destarg, int64_t val)
     {
-        Assert(destarg.tag == Arg::IREG && signed_fits(uint64_t(val), 32));
+        LOOPS_ASSERT(destarg.tag == Arg::IREG && signed_fits(uint64_t(val), 32));
         if(!signed_fits(uint64_t(val), 12))
         {
             uint64_t upper20 = (uint64_t(val) >> 12) & 0b11111111111111111111;
@@ -1408,7 +1334,7 @@ namespace loops
             {
             case OP_MOV:
                 //This is not about snippets, its ommiting parasite self-assignments.
-                Assert(op.size() == 2); 
+                LOOPS_ASSERT(op.size() == 2); 
                 if(!(((op[0].tag == Arg::IREG && op[1].tag == Arg::IREG ) || 
                     (op[0].tag == Arg::VREG && op[1].tag == Arg::VREG ))
                     && op[0].idx == op[1].idx))
@@ -1425,7 +1351,7 @@ namespace loops
                 allSaved.insert(parameterRegisters.begin(), parameterRegisters.end());
                 allSaved.insert(returnRegisters.begin(), returnRegisters.end());
                 allSaved.insert(callerSavedRegisters.begin(), callerSavedRegisters.end());
-                Assert((op.opcode == OP_CALL && op.size() >= 2 && op.size() <= ((int)parameterRegisters.size() + 2)) ||
+                LOOPS_ASSERT((op.opcode == OP_CALL && op.size() >= 2 && op.size() <= ((int)parameterRegisters.size() + 2)) ||
                        (op.opcode == OP_CALL_NORET && op.size() >= 1 && op.size() <= ((int)parameterRegisters.size() + 1)));
                 int retidx = op.opcode == OP_CALL ? op[0].idx : 0;
 
@@ -1446,7 +1372,7 @@ namespace loops
                 std::set<int> brokenRegs;
                 for(int fargnum = (op.opcode == OP_CALL ? 2 : 1); fargnum < op.size(); fargnum++)
                 {
-                    Assert(op[fargnum].tag == Arg::IREG);
+                    LOOPS_ASSERT(op[fargnum].tag == Arg::IREG);
                     int regidx = parameterRegisters[fargnum - (op.opcode == OP_CALL ? 2 : 1)];
                     if(op[fargnum].idx != regidx)
                     {
@@ -1458,7 +1384,7 @@ namespace loops
                             for(auto iter = allSaved.begin(); spillPos < (int)allSaved.size(); spillPos++, iter++)
                                 if(*iter == op[fargnum].idx)
                                     break;
-                            Assert(spillPos < (int)allSaved.size());
+                            LOOPS_ASSERT(spillPos < (int)allSaved.size());
                             a_dest.program.push_back(Syntop(OP_UNSPILL, { argReg(RB_INT,  regidx), argIImm(spillPos)}));
                         }
                         brokenRegs.insert(regidx);

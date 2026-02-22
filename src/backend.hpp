@@ -117,7 +117,7 @@ public:
 
     //It's assumed here, that Syntop is native, not IR. Return argument flags.
     //Result array have to be allocated before and have to be of (Syntop::SYNTOP_ARGS_MAX) size.
-    void fill_native_operand_flags(const loops::Syntop* a_op, uint64_t* result) const;
+    void fill_native_operand_flags(const Syntop* a_op, uint64_t* result) const;
 
     //Prologue and epilogue support
     /*
@@ -133,9 +133,9 @@ public:
 
     virtual Arg getSParg() const = 0;
 
-    virtual column_printer get_opname_printer() const = 0;
-    virtual column_printer get_opargs_printer() const = 0;
-    virtual column_printer get_hex_printer() const = 0;
+    virtual column_printer_ptr get_opname_printer() const = 0;
+    virtual column_printer_ptr get_opargs_printer() const = 0;
+    virtual column_printer_ptr get_hex_printer() const = 0;
     
     Allocator* getAllocator() { return &m_exeAlloc; }
     inline std::vector<int> getStackBasketOrder() const { return {RB_VEC, RB_INT};}
@@ -190,7 +190,7 @@ BinTranslation Backend::lookS2b(const Syntop& index) const
     //TODO(ch): Unfortunately, Intel64 printer calls lookS2b, so, because of recursion we cannot print instruction here. Fix it.
     bool NOTSUPPORTED;
     BinTranslation ret = m_s2blookup(index, NOTSUPPORTED);
-    Assert(NOTSUPPORTED);
+    LOOPS_ASSERT(NOTSUPPORTED);
     return ret;
 }
 SyntopTranslation Backend::lookS2s(const Syntop& index) const
@@ -198,7 +198,7 @@ SyntopTranslation Backend::lookS2s(const Syntop& index) const
     bool success;
     SyntopTranslation ret = m_s2slookup(this, index, success);
     if(!success) 
-        throw std::runtime_error(std::string("Unsupported intermediate representation instruction: ") + IR_instruction2string(index));
+        throw loops::exception(std::string("Unsupported intermediate representation instruction: ") + IR_instruction2string(index));
     return ret;
 }
 
